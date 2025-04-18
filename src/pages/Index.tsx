@@ -1,12 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
 
 const Index = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check for user's preferred color scheme
@@ -52,10 +57,20 @@ const Index = () => {
             <p className="text-xl mb-8 max-w-2xl mx-auto text-muted-foreground">
               Save time by uploading your photos and videos to all your social media platforms simultaneously.
             </p>
+            {!user && (
+              <div className="flex gap-4 justify-center">
+                <Button onClick={() => navigate('/auth')} variant="default">
+                  Get Started
+                </Button>
+                <Button onClick={() => navigate('/auth')} variant="outline">
+                  Login
+                </Button>
+              </div>
+            )}
           </div>
         </section>
         
-        <Dashboard />
+        {user && <Dashboard />}
       </main>
       
       <footer className="py-6 px-4 border-t">
