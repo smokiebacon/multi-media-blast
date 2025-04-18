@@ -1,6 +1,5 @@
-
 import React, { useCallback, useState } from 'react';
-import { Upload, Image, Film, AlertCircle } from 'lucide-react';
+import { Upload, Image, Film, AlertCircle, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -50,7 +49,6 @@ const MediaDropzone: React.FC<MediaDropzoneProps> = ({ onFileAccepted }) => {
   }, []);
   
   const validateAndProcessFile = (file: File) => {
-    // Check if the file is an image or video
     if (file.type.match('image.*')) {
       setFileType('image');
       const reader = new FileReader();
@@ -61,7 +59,6 @@ const MediaDropzone: React.FC<MediaDropzoneProps> = ({ onFileAccepted }) => {
       onFileAccepted(file);
     } else if (file.type.match('video.*')) {
       setFileType('video');
-      // Create a URL for the video
       const url = URL.createObjectURL(file);
       setFilePreview(url);
       onFileAccepted(file);
