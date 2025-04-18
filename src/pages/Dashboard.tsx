@@ -2,8 +2,9 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import Dashboard from '@/components/Dashboard';
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -20,9 +21,11 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-4">Welcome to your Dashboard</h1>
-      <p className="text-muted-foreground">
+      <p className="text-muted-foreground mb-6">
         You're logged in as {user?.email}
       </p>
+      
+      <Dashboard />
     </div>
   );
 }
