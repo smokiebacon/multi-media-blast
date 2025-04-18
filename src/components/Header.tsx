@@ -2,6 +2,8 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { MoonIcon, SunIcon } from "lucide-react";
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 
 type HeaderProps = {
@@ -10,6 +12,9 @@ type HeaderProps = {
 };
 
 const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <header className="w-full py-4 px-6 flex items-center justify-between bg-background border-b">
       <div className="flex items-center space-x-2">
@@ -20,6 +25,29 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
       </div>
       
       <div className="flex items-center gap-4">
+        {user ? (
+          <>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/dashboard')}
+            >
+              Dashboard
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => logout()}
+            >
+              Logout
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="outline"
+            onClick={() => navigate('/auth')}
+          >
+            Login
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
