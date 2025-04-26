@@ -8,19 +8,31 @@ import { Platform } from '@/types/platforms';
 import { PlatformAccount } from '@/types/platform-accounts';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
-const PlatformsManager: React.FC = () => {
+interface PlatformsManagerProps {
+  connectedPlatforms?: Platform[];
+  setConnectedPlatforms?: React.Dispatch<React.SetStateAction<Platform[]>>;
+}
+
+const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [platformAccounts, setPlatformAccounts] = useState<PlatformAccount[]>([]);
 
   useEffect(() => {
-    fetchPlatformAccounts();
-  }, []);
+    if (user) {
+      fetchPlatformAccounts();
+    }
+  }, [user]);
 
   const fetchPlatformAccounts = async () => {
+    if (!user) return;
+    
     const { data, error } = await supabase
       .from('platform_accounts')
-      .select('*');
+      .select('*')
+      .eq('user_id', user.id);
 
     if (error) {
       toast({
@@ -31,10 +43,19 @@ const PlatformsManager: React.FC = () => {
       return;
     }
 
-    setPlatformAccounts(data);
+    setPlatformAccounts(data || []);
   };
 
   const handleConnect = async (platformId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to connect accounts.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // In a real app, this would initiate OAuth flow
     // For demo purposes, we'll simulate creating a new connection
     const accountName = `${platformId} Account ${platformAccounts.filter(a => a.platform_id === platformId).length + 1}`;
@@ -42,6 +63,7 @@ const PlatformsManager: React.FC = () => {
     const { error } = await supabase
       .from('platform_accounts')
       .insert({
+        user_id: user.id,
         platform_id: platformId,
         account_name: accountName,
         account_identifier: `demo-${Date.now()}`,

@@ -1,13 +1,11 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PostForm from './PostForm';
 import PlatformsManager from './PlatformsManager';
-import { Platform } from '@/types/platforms';
+import { platforms as allPlatforms } from '@/data/platforms';
 
 const Dashboard: React.FC = () => {
-  const [connectedPlatforms, setConnectedPlatforms] = useState<Platform[]>([]);
-
   return (
     <div className="container mx-auto max-w-5xl py-8 px-4">
       <Tabs defaultValue="create" className="w-full">
@@ -17,14 +15,11 @@ const Dashboard: React.FC = () => {
         </TabsList>
         
         <TabsContent value="create">
-          <PostForm connectedPlatforms={connectedPlatforms} />
+          <PostForm connectedPlatforms={allPlatforms} />
         </TabsContent>
         
         <TabsContent value="platforms">
-          <PlatformsManager 
-            connectedPlatforms={connectedPlatforms}
-            setConnectedPlatforms={setConnectedPlatforms}
-          />
+          <PlatformsManager />
         </TabsContent>
       </Tabs>
     </div>
