@@ -25,16 +25,28 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
 
   const handleYouTubeConnect = async () => {
     try {
+      toast({
+        title: "Connecting to YouTube",
+        description: "Please wait while we connect to your YouTube account...",
+      });
+
       const { data, error } = await supabase.functions.invoke('youtube-auth', {
         body: { action: 'connect' },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('YouTube connect error:', error);
+        throw error;
+      }
 
       console.log("YouTube connect response:", data);
       
       if (!data.url) {
         throw new Error("No auth URL returned from function");
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       // Redirect to the OAuth consent screen
@@ -43,7 +55,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
       console.error('Error connecting YouTube:', error);
       toast({
         title: "Connection Failed",
-        description: "Could not connect to YouTube. Please try again.",
+        description: `Could not connect to YouTube: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }
