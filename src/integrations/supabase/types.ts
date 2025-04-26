@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      platform_accounts: {
+        Row: {
+          access_token: string | null
+          account_identifier: string
+          account_name: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          platform_id: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_identifier: string
+          account_name: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          platform_id: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          account_identifier?: string
+          account_name?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          platform_id?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -1,46 +1,92 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import PlatformConnectionItem from '@/components/PlatformConnectionItem';
 import { platforms as allPlatforms } from '@/data/platforms';
 import { Platform } from '@/types/platforms';
+import { PlatformAccount } from '@/types/platform-accounts';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
-interface PlatformsManagerProps {
-  connectedPlatforms: Platform[];
-  setConnectedPlatforms: React.Dispatch<React.SetStateAction<Platform[]>>;
-}
-
-const PlatformsManager: React.FC<PlatformsManagerProps> = ({
-  connectedPlatforms,
-  setConnectedPlatforms
-}) => {
+const PlatformsManager: React.FC = () => {
   const { toast } = useToast();
+  const [platformAccounts, setPlatformAccounts] = useState<PlatformAccount[]>([]);
 
-  const handleConnect = (platformId: string) => {
-    // In a real app, this would initiate OAuth flow
-    // For demo purposes, we'll just simulate successful connection
-    const platformToConnect = allPlatforms.find(p => p.id === platformId);
-    
-    if (platformToConnect && !connectedPlatforms.some(p => p.id === platformId)) {
-      setConnectedPlatforms(prev => [...prev, platformToConnect]);
+  useEffect(() => {
+    fetchPlatformAccounts();
+  }, []);
+
+  const fetchPlatformAccounts = async () => {
+    const { data, error } = await supabase
+      .from('platform_accounts')
+      .select('*');
+
+    if (error) {
       toast({
-        title: "Platform connected",
-        description: `Successfully connected to ${platformToConnect.name}.`,
+        title: "Error fetching accounts",
+        description: error.message,
+        variant: "destructive"
       });
+      return;
     }
+
+    setPlatformAccounts(data);
   };
 
-  const handleDisconnect = (platformId: string) => {
-    setConnectedPlatforms(prev => prev.filter(p => p.id !== platformId));
-    const platform = allPlatforms.find(p => p.id === platformId);
-    if (platform) {
-      toast({
-        title: "Platform disconnected",
-        description: `Successfully disconnected from ${platform.name}.`,
+  const handleConnect = async (platformId: string) => {
+    // In a real app, this would initiate OAuth flow
+    // For demo purposes, we'll simulate creating a new connection
+    const accountName = `${platformId} Account ${platformAccounts.filter(a => a.platform_id === platformId).length + 1}`;
+    
+    const { error } = await supabase
+      .from('platform_accounts')
+      .insert({
+        platform_id: platformId,
+        account_name: accountName,
+        account_identifier: `demo-${Date.now()}`,
       });
+
+    if (error) {
+      toast({
+        title: "Error connecting account",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
     }
+
+    fetchPlatformAccounts();
+    toast({
+      title: "Account connected",
+      description: `Successfully connected new ${platformId} account.`,
+    });
+  };
+
+  const handleDisconnect = async (accountId: string) => {
+    const { error } = await supabase
+      .from('platform_accounts')
+      .delete()
+      .eq('id', accountId);
+
+    if (error) {
+      toast({
+        title: "Error disconnecting account",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    fetchPlatformAccounts();
+    toast({
+      title: "Account disconnected",
+      description: "Successfully disconnected account.",
+    });
+  };
+
+  const getConnectedAccountsForPlatform = (platformId: string) => {
+    return platformAccounts.filter(account => account.platform_id === platformId);
   };
 
   return (
@@ -48,7 +94,7 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = ({
       <CardHeader>
         <CardTitle>Platform Connections</CardTitle>
         <CardDescription>
-          Connect your social media accounts to post across platforms.
+          Connect multiple accounts from your social media platforms.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -56,7 +102,7 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = ({
           <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="all">All Platforms</TabsTrigger>
             <TabsTrigger value="connected">Connected</TabsTrigger>
-            <TabsTrigger value="disconnected">Disconnected</TabsTrigger>
+            <TabsTrigger value="available">Available</TabsTrigger>
           </TabsList>
           
           <TabsContent value="all" className="space-y-4">
@@ -64,7 +110,7 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = ({
               <PlatformConnectionItem
                 key={platform.id}
                 platform={platform}
-                isConnected={connectedPlatforms.some(p => p.id === platform.id)}
+                connectedAccounts={getConnectedAccountsForPlatform(platform.id)}
                 onConnect={handleConnect}
                 onDisconnect={handleDisconnect}
               />
@@ -72,33 +118,31 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = ({
           </TabsContent>
           
           <TabsContent value="connected" className="space-y-4">
-            {connectedPlatforms.length > 0 ? (
-              connectedPlatforms.map(platform => (
+            {allPlatforms
+              .filter(platform => getConnectedAccountsForPlatform(platform.id).length > 0)
+              .map(platform => (
                 <PlatformConnectionItem
                   key={platform.id}
                   platform={platform}
-                  isConnected={true}
+                  connectedAccounts={getConnectedAccountsForPlatform(platform.id)}
                   onConnect={handleConnect}
                   onDisconnect={handleDisconnect}
                 />
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No connected platforms yet</p>
-              </div>
-            )}
+              ))}
           </TabsContent>
           
-          <TabsContent value="disconnected" className="space-y-4">
-            {allPlatforms.filter(p => !connectedPlatforms.some(cp => cp.id === p.id)).map(platform => (
-              <PlatformConnectionItem
-                key={platform.id}
-                platform={platform}
-                isConnected={false}
-                onConnect={handleConnect}
-                onDisconnect={handleDisconnect}
-              />
-            ))}
+          <TabsContent value="available" className="space-y-4">
+            {allPlatforms
+              .filter(platform => getConnectedAccountsForPlatform(platform.id).length === 0)
+              .map(platform => (
+                <PlatformConnectionItem
+                  key={platform.id}
+                  platform={platform}
+                  connectedAccounts={[]}
+                  onConnect={handleConnect}
+                  onDisconnect={handleDisconnect}
+                />
+              ))}
           </TabsContent>
         </Tabs>
       </CardContent>
