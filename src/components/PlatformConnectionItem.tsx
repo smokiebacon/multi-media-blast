@@ -1,10 +1,11 @@
-
 import React from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Platform } from '@/types/platforms';
 import { PlatformAccount } from '@/types/platform-accounts';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 interface PlatformConnectionItemProps {
   platform: Platform;
@@ -19,6 +20,36 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
   onConnect,
   onDisconnect,
 }) => {
+  const { toast } = useToast();
+
+  const handleYouTubeConnect = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('youtube-auth', {
+        body: { action: 'connect' },
+      });
+
+      if (error) throw error;
+
+      // Open the OAuth consent screen in a new window
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error connecting YouTube:', error);
+      toast({
+        title: "Connection Failed",
+        description: "Could not connect to YouTube. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleConnect = () => {
+    if (platform.id === 'youtube') {
+      handleYouTubeConnect();
+    } else {
+      onConnect(platform.id);
+    }
+  };
+
   return (
     <div className="rounded-lg p-4 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
@@ -40,7 +71,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onConnect(platform.id)}
+          onClick={handleConnect}
           className="text-xs h-8 px-3 py-1"
         >
           <Plus className="w-3.5 h-3.5 mr-1" />
