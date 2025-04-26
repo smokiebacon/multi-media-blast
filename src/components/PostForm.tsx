@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -10,29 +10,56 @@ import { CalendarIcon, Send, Clock } from 'lucide-react';
 import MediaDropzone from './MediaDropzone';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
-import { Platform } from '@/types/platforms';
+import { PlatformAccount } from '@/types/platform-accounts';
+import { platforms as allPlatforms } from '@/data/platforms';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
-interface PostFormProps {
-  connectedPlatforms: Platform[];
-}
-
-const PostForm: React.FC<PostFormProps> = ({ connectedPlatforms }) => {
+const PostForm: React.FC = () => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [platformAccounts, setPlatformAccounts] = useState<PlatformAccount[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      fetchPlatformAccounts();
+    }
+  }, [user]);
+
+  const fetchPlatformAccounts = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('platform_accounts')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast({
+        title: "Error fetching accounts",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setPlatformAccounts(data || []);
+  };
 
   const handleMediaFileAccepted = (file: File) => {
     setMediaFile(file);
   };
 
-  const togglePlatform = (platformId: string) => {
-    setSelectedPlatforms(prev => 
-      prev.includes(platformId) 
-        ? prev.filter(id => id !== platformId) 
-        : [...prev, platformId]
+  const toggleAccount = (accountId: string) => {
+    setSelectedAccounts(prev => 
+      prev.includes(accountId) 
+        ? prev.filter(id => id !== accountId) 
+        : [...prev, accountId]
     );
   };
 
@@ -48,10 +75,10 @@ const PostForm: React.FC<PostFormProps> = ({ connectedPlatforms }) => {
       return;
     }
     
-    if (selectedPlatforms.length === 0) {
+    if (selectedAccounts.length === 0) {
       toast({
-        title: "No platforms selected",
-        description: "Please select at least one platform to post to.",
+        title: "No accounts selected",
+        description: "Please select at least one account to post to.",
         variant: "destructive",
       });
       return;
@@ -59,22 +86,19 @@ const PostForm: React.FC<PostFormProps> = ({ connectedPlatforms }) => {
     
     setIsSubmitting(true);
     
-    // Simulate posting to platforms
     try {
-      // Here we would handle the actual posting to each platform
-      // For now we'll just simulate a delay
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       toast({
         title: "Post successful!",
-        description: `Your media has been posted to ${selectedPlatforms.length} platform(s).`,
+        description: `Your media has been posted to ${selectedAccounts.length} account(s).`,
       });
       
       // Reset form
       setMediaFile(null);
       setCaption('');
       setSelectedDate(undefined);
-      setSelectedPlatforms([]);
+      setSelectedAccounts([]);
     } catch (error) {
       toast({
         title: "Post failed",
@@ -85,6 +109,15 @@ const PostForm: React.FC<PostFormProps> = ({ connectedPlatforms }) => {
       setIsSubmitting(false);
     }
   };
+
+  // Group accounts by platform
+  const accountsByPlatform = platformAccounts.reduce<Record<string, PlatformAccount[]>>((acc, account) => {
+    if (!acc[account.platform_id]) {
+      acc[account.platform_id] = [];
+    }
+    acc[account.platform_id].push(account);
+    return acc;
+  }, {});
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -154,24 +187,35 @@ const PostForm: React.FC<PostFormProps> = ({ connectedPlatforms }) => {
         
         <div className="mb-6">
           <label className="block text-sm font-medium mb-2">
-            Select Platforms
+            Select Accounts
           </label>
-          <div className="flex flex-wrap gap-2">
-            {connectedPlatforms.length > 0 ? (
-              connectedPlatforms.map((platform) => (
-                <Badge
-                  key={platform.id}
-                  variant={selectedPlatforms.includes(platform.id) ? "default" : "outline"}
-                  className="cursor-pointer py-2 px-3"
-                  onClick={() => togglePlatform(platform.id)}
-                >
-                  <platform.icon className="h-4 w-4 mr-1" />
-                  {platform.name}
-                </Badge>
-              ))
-            ) : (
+          <div className="space-y-4">
+            {Object.entries(accountsByPlatform).map(([platformId, accounts]) => {
+              const platform = allPlatforms.find(p => p.id === platformId);
+              if (!platform) return null;
+              
+              return (
+                <div key={platformId} className="space-y-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">{platform.name}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {accounts.map((account) => (
+                      <Badge
+                        key={account.id}
+                        variant={selectedAccounts.includes(account.id) ? "default" : "outline"}
+                        className="cursor-pointer py-2 px-3"
+                        onClick={() => toggleAccount(account.id)}
+                      >
+                        <platform.icon className="h-4 w-4 mr-1" />
+                        {account.account_name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {platformAccounts.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No platforms connected. Connect a platform first to post.
+                No accounts connected. Please connect accounts in the Platforms tab first.
               </p>
             )}
           </div>
@@ -180,7 +224,7 @@ const PostForm: React.FC<PostFormProps> = ({ connectedPlatforms }) => {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isSubmitting || !mediaFile || selectedPlatforms.length === 0}
+          disabled={isSubmitting || !mediaFile || selectedAccounts.length === 0}
         >
           {isSubmitting ? (
             <>Posting...</>

@@ -3,7 +3,6 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PostForm from './PostForm';
 import PlatformsManager from './PlatformsManager';
-import { platforms as allPlatforms } from '@/data/platforms';
 
 const Dashboard: React.FC = () => {
   return (
@@ -15,7 +14,7 @@ const Dashboard: React.FC = () => {
         </TabsList>
         
         <TabsContent value="create">
-          <PostForm connectedPlatforms={allPlatforms} />
+          <PostForm />
         </TabsContent>
         
         <TabsContent value="platforms">
