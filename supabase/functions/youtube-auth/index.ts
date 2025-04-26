@@ -16,6 +16,9 @@ const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY') || '';
 const REDIRECT_URI = 'https://45efbe08-2f80-47f8-b48a-801bdd07efa3.lovableproject.com/youtube-callback';
 
 console.log("Function initialized with redirect URI:", REDIRECT_URI);
+console.log("Credentials configured - Client ID exists:", !!YOUTUBE_CLIENT_ID);
+console.log("Credentials configured - Client Secret exists:", !!YOUTUBE_CLIENT_SECRET);
+console.log("Credentials configured - API Key exists:", !!YOUTUBE_API_KEY);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -25,6 +28,7 @@ serve(async (req) => {
 
   try {
     const { action, code } = await req.json();
+    console.log(`Processing action: ${action}`);
 
     if (action === 'connect') {
       // Validate that secrets are present
@@ -40,7 +44,8 @@ serve(async (req) => {
       }
 
       const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload';
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${YOUTUBE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
+      // Do NOT URL encode the entire REDIRECT_URI, Google needs the exact string to match
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${YOUTUBE_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
       
       console.log("Generated auth URL:", authUrl);
       
