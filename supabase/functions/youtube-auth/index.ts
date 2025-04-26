@@ -1,23 +1,15 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Make sure we use the environment variables
+// Securely retrieve secrets using Deno.env
 const YOUTUBE_CLIENT_ID = Deno.env.get('YOUTUBE_CLIENT_ID') || '';
 const YOUTUBE_CLIENT_SECRET = Deno.env.get('YOUTUBE_CLIENT_SECRET') || '';
 const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY') || '';
 const REDIRECT_URI = 'https://45efbe08-2f80-47f8-b48a-801bdd07efa3.lovableproject.com/youtube-callback';
-
-// Add debug logs to check if environment variables are set
-console.log("Config check - Client ID exists:", !!YOUTUBE_CLIENT_ID);
-console.log("Config check - Client Secret exists:", !!YOUTUBE_CLIENT_SECRET);
-console.log("Config check - API Key exists:", !!YOUTUBE_API_KEY);
-console.log("Redirect URI set to:", REDIRECT_URI);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -29,7 +21,9 @@ serve(async (req) => {
     const { action, code } = await req.json();
 
     if (action === 'connect') {
+      // Validate that secrets are present
       if (!YOUTUBE_CLIENT_ID) {
+        console.error('YouTube Client ID is missing');
         return new Response(
           JSON.stringify({ error: 'YouTube Client ID is not configured' }), 
           { 
@@ -50,6 +44,7 @@ serve(async (req) => {
     }
 
     if (action === 'callback') {
+      // Validate secrets and code
       if (!code) {
         return new Response(JSON.stringify({ error: 'No code provided' }), { 
           status: 400,
