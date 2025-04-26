@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const corsHeaders = {
@@ -9,7 +10,12 @@ const corsHeaders = {
 const YOUTUBE_CLIENT_ID = Deno.env.get('YOUTUBE_CLIENT_ID') || '';
 const YOUTUBE_CLIENT_SECRET = Deno.env.get('YOUTUBE_CLIENT_SECRET') || '';
 const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY') || '';
+
+// Important: Make sure this matches EXACTLY what you've registered in Google Cloud Console
+// Including the protocol (https://), and there should be no trailing slashes
 const REDIRECT_URI = 'https://45efbe08-2f80-47f8-b48a-801bdd07efa3.lovableproject.com/youtube-callback';
+
+console.log("Function initialized with redirect URI:", REDIRECT_URI);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -34,7 +40,7 @@ serve(async (req) => {
       }
 
       const scope = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload';
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${YOUTUBE_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${YOUTUBE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
       
       console.log("Generated auth URL:", authUrl);
       
@@ -64,6 +70,7 @@ serve(async (req) => {
 
       try {
         console.log("Exchanging code for token with credentials");
+        console.log("Using redirect URI for token exchange:", REDIRECT_URI);
         
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
