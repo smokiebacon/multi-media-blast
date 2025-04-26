@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,13 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
 
       if (error) throw error;
 
-      // Open the OAuth consent screen in a new window
+      console.log("YouTube connect response:", data);
+      
+      if (!data.url) {
+        throw new Error("No auth URL returned from function");
+      }
+
+      // Redirect to the OAuth consent screen
       window.location.href = data.url;
     } catch (error) {
       console.error('Error connecting YouTube:', error);

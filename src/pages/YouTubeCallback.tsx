@@ -31,6 +31,8 @@ export default function YouTubeCallback() {
 
         if (error) throw error;
 
+        console.log("YouTube callback response:", data);
+
         // Store the connected account in Supabase
         const { error: dbError } = await supabase
           .from('platform_accounts')
