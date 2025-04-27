@@ -9,7 +9,7 @@ export default function YouTubeCallback() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [isProcessing, useState] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
     const handleCallback = async () => {
