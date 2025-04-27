@@ -19,6 +19,7 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [platformAccounts, setPlatformAccounts] = useState<PlatformAccount[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -29,10 +30,14 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
   const fetchPlatformAccounts = async () => {
     if (!user) return;
     
+    setIsLoading(true);
+    
     const { data, error } = await supabase
       .from('platform_accounts')
       .select('*')
       .eq('user_id', user.id);
+
+    setIsLoading(false);
 
     if (error) {
       toast({
@@ -100,7 +105,9 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
       return;
     }
 
-    fetchPlatformAccounts();
+    // Update the local state by removing the disconnected account
+    setPlatformAccounts(accounts => accounts.filter(account => account.id !== accountId));
+    
     toast({
       title: "Account disconnected",
       description: "Successfully disconnected account.",
@@ -111,6 +118,19 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
     return platformAccounts.filter(account => account.platform_id === platformId);
   };
 
+  if (!user) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Platform Connections</CardTitle>
+          <CardDescription>
+            Please log in to manage your platform connections.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -120,29 +140,20 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid grid-cols-3 mb-4">
-            <TabsTrigger value="all">All Platforms</TabsTrigger>
-            <TabsTrigger value="connected">Connected</TabsTrigger>
-            <TabsTrigger value="available">Available</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all" className="space-y-4">
-            {allPlatforms.map(platform => (
-              <PlatformConnectionItem
-                key={platform.id}
-                platform={platform}
-                connectedAccounts={getConnectedAccountsForPlatform(platform.id)}
-                onConnect={handleConnect}
-                onDisconnect={handleDisconnect}
-              />
-            ))}
-          </TabsContent>
-          
-          <TabsContent value="connected" className="space-y-4">
-            {allPlatforms
-              .filter(platform => getConnectedAccountsForPlatform(platform.id).length > 0)
-              .map(platform => (
+        {isLoading ? (
+          <div className="py-4 text-center text-muted-foreground">
+            Loading your connected accounts...
+          </div>
+        ) : (
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid grid-cols-3 mb-4">
+              <TabsTrigger value="all">All Platforms</TabsTrigger>
+              <TabsTrigger value="connected">Connected</TabsTrigger>
+              <TabsTrigger value="available">Available</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="all" className="space-y-4">
+              {allPlatforms.map(platform => (
                 <PlatformConnectionItem
                   key={platform.id}
                   platform={platform}
@@ -151,22 +162,49 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
                   onDisconnect={handleDisconnect}
                 />
               ))}
-          </TabsContent>
-          
-          <TabsContent value="available" className="space-y-4">
-            {allPlatforms
-              .filter(platform => getConnectedAccountsForPlatform(platform.id).length === 0)
-              .map(platform => (
-                <PlatformConnectionItem
-                  key={platform.id}
-                  platform={platform}
-                  connectedAccounts={[]}
-                  onConnect={handleConnect}
-                  onDisconnect={handleDisconnect}
-                />
-              ))}
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+            
+            <TabsContent value="connected" className="space-y-4">
+              {allPlatforms
+                .filter(platform => getConnectedAccountsForPlatform(platform.id).length > 0)
+                .map(platform => (
+                  <PlatformConnectionItem
+                    key={platform.id}
+                    platform={platform}
+                    connectedAccounts={getConnectedAccountsForPlatform(platform.id)}
+                    onConnect={handleConnect}
+                    onDisconnect={handleDisconnect}
+                  />
+                ))}
+                
+                {!allPlatforms.some(platform => getConnectedAccountsForPlatform(platform.id).length > 0) && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No connected platforms yet. Connect a platform to get started.
+                  </div>
+                )}
+            </TabsContent>
+            
+            <TabsContent value="available" className="space-y-4">
+              {allPlatforms
+                .filter(platform => getConnectedAccountsForPlatform(platform.id).length === 0)
+                .map(platform => (
+                  <PlatformConnectionItem
+                    key={platform.id}
+                    platform={platform}
+                    connectedAccounts={[]}
+                    onConnect={handleConnect}
+                    onDisconnect={handleDisconnect}
+                  />
+                ))}
+                
+                {!allPlatforms.some(platform => getConnectedAccountsForPlatform(platform.id).length === 0) && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    All platforms are connected. Great job!
+                  </div>
+                )}
+            </TabsContent>
+          </Tabs>
+        )}
       </CardContent>
     </Card>
   );
