@@ -18,7 +18,9 @@ serve(async (req) => {
 
   try {
     const { action, code } = await req.json();
-    const clientKey = Deno.env.get('TIKTOK_CLIENT_KEY');
+    
+    // Check for both possible environment variable names for TikTok client key
+    const clientKey = Deno.env.get('TIKTOK_CLIENT_KEY') || Deno.env.get('TIKTOK_CLIENT_ID');
     const clientSecret = Deno.env.get('TIKTOK_CLIENT_SECRET');
 
     console.log("TikTok Auth Function Environment Check:");
@@ -26,6 +28,12 @@ serve(async (req) => {
     console.log("- REDIRECT_URI:", REDIRECT_URI);
     console.log("- Has TIKTOK_CLIENT_KEY:", !!clientKey);
     console.log("- Has TIKTOK_CLIENT_SECRET:", !!clientSecret);
+    // Log variable names that might be set instead
+    console.log("- Alternative env vars present:", 
+      Object.keys(Deno.env.toObject())
+        .filter(key => key.includes('TIKTOK') || key.includes('TIK'))
+        .join(', ')
+    );
 
     if (!clientKey || !clientSecret) {
       console.error("TikTok credentials not configured");
