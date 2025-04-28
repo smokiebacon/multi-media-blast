@@ -21,13 +21,18 @@ serve(async (req) => {
     const clientKey = Deno.env.get('TIKTOK_CLIENT_KEY');
     const clientSecret = Deno.env.get('TIKTOK_CLIENT_SECRET');
 
+    console.log("TikTok Auth Function Environment Check:");
+    console.log("- PUBLIC_URL:", PUBLIC_URL);
+    console.log("- REDIRECT_URI:", REDIRECT_URI);
+    console.log("- Has TIKTOK_CLIENT_KEY:", !!clientKey);
+    console.log("- Has TIKTOK_CLIENT_SECRET:", !!clientSecret);
+
     if (!clientKey || !clientSecret) {
       console.error("TikTok credentials not configured");
-      throw new Error("TikTok credentials not configured");
+      throw new Error("TikTok credentials not configured. Please set TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET in Supabase Edge Function secrets.");
     }
 
     console.log("Processing TikTok auth action:", action);
-    console.log("Using redirect URI:", REDIRECT_URI);
 
     if (action === 'connect') {
       // Generate a random state for CSRF protection

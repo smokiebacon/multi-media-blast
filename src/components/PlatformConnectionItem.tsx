@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Plus, X, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Platform } from '@/types/platforms';
@@ -35,17 +35,13 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
 
       if (error) {
         console.error('TikTok connect error:', error);
-        throw error;
+        throw new Error(error.message || "Error connecting to TikTok");
       }
 
       console.log("TikTok connect response:", data);
       
       if (!data.url) {
-        throw new Error("No auth URL returned from function");
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
+        throw new Error(data.error || "No auth URL returned from function");
       }
 
       // Redirect to the OAuth consent screen
@@ -54,7 +50,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
       console.error('Error connecting TikTok:', error);
       toast({
         title: "Connection Failed",
-        description: `Could not connect to TikTok: ${error.message || 'Unknown error'}`,
+        description: `Could not connect to TikTok: ${error.message || 'Unknown error'}. Please make sure the TikTok API credentials are configured in Supabase Edge Function secrets.`,
         variant: "destructive"
       });
     }
@@ -129,7 +125,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={handleConnect}
+          onClick={platform.id === 'tiktok' ? handleTikTokConnect : platform.id === 'youtube' ? handleYouTubeConnect : () => onConnect(platform.id)}
           className="text-xs h-8 px-3 py-1"
         >
           <Plus className="w-3.5 h-3.5 mr-1" />
