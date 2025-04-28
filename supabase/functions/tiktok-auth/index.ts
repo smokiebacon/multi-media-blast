@@ -6,7 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const REDIRECT_URI = `${Deno.env.get('PUBLIC_URL')}/tiktok-callback`;
+// Get base URL from environment variable or use a fallback
+const PUBLIC_URL = Deno.env.get('PUBLIC_URL') || 'http://localhost:3000';
+const REDIRECT_URI = `${PUBLIC_URL}/tiktok-callback`;
 
 serve(async (req) => {
   // Handle CORS preflight requests
