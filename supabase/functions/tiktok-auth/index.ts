@@ -20,19 +20,26 @@ serve(async (req) => {
     const clientSecret = Deno.env.get('TIKTOK_CLIENT_SECRET');
 
     if (!clientKey || !clientSecret) {
+      console.error("TikTok credentials not configured");
       throw new Error("TikTok credentials not configured");
     }
 
     console.log("Processing TikTok auth action:", action);
+    console.log("Using redirect URI:", REDIRECT_URI);
 
     if (action === 'connect') {
+      // Generate a random state for CSRF protection
       const csrfState = crypto.randomUUID();
-      const authUrl = `https://www.tiktok.com/auth/authorize?` +
+      
+      // Create the authorization URL with all required parameters
+      const authUrl = `https://www.tiktok.com/v2/auth/authorize?` +
         `client_key=${clientKey}` +
         `&scope=user.info.basic,video.list` +
         `&response_type=code` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
         `&state=${csrfState}`;
+
+      console.log("Generated TikTok auth URL:", authUrl);
 
       return new Response(
         JSON.stringify({ url: authUrl }),
@@ -41,45 +48,68 @@ serve(async (req) => {
     }
 
     if (action === 'callback' && code) {
-      console.log("Handling TikTok callback with code");
+      console.log("Handling TikTok callback with code:", code);
       
-      const tokenResponse = await fetch('https://open.tiktok.com/oauth/access_token/', {
+      // Exchange code for access token
+      const tokenUrl = 'https://open.tiktok.com/v2/oauth/token/';
+      const tokenBody = new URLSearchParams({
+        client_key: clientKey,
+        client_secret: clientSecret,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: REDIRECT_URI,
+      });
+      
+      console.log("Sending token request to:", tokenUrl);
+      console.log("Token request body:", tokenBody.toString());
+      
+      const tokenResponse = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({
-          client_key: clientKey,
-          client_secret: clientSecret,
-          code: code,
-          grant_type: 'authorization_code',
-          redirect_uri: REDIRECT_URI,
-        }),
+        body: tokenBody,
       });
 
       const tokenData = await tokenResponse.json();
+      console.log("Token response status:", tokenResponse.status);
       console.log("Token response:", tokenData);
 
-      if (tokenData.error) {
+      if (tokenData.error || !tokenData.data) {
         throw new Error(tokenData.error_description || 'Failed to get access token');
       }
 
+      // Extract the access token and open_id from the response
+      const { access_token, refresh_token, open_id } = tokenData.data;
+
       // Get user info
-      const userResponse = await fetch('https://open.tiktok.com/oauth/userinfo/', {
+      const userInfoUrl = 'https://open.tiktok.com/v2/user/info/';
+      const userInfoParams = new URLSearchParams({
+        fields: 'open_id,union_id,avatar_url,display_name',
+      });
+      
+      console.log("Fetching user info from:", userInfoUrl);
+      
+      const userResponse = await fetch(`${userInfoUrl}?${userInfoParams.toString()}`, {
         headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Authorization': `Bearer ${access_token}`,
         },
       });
 
       const userData = await userResponse.json();
-      console.log("User data:", userData);
+      console.log("User data response status:", userResponse.status);
+      console.log("User data response:", userData);
+
+      if (userData.error || !userData.data) {
+        throw new Error(userData.error_description || 'Failed to get user info');
+      }
 
       return new Response(
         JSON.stringify({
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
-          account_name: userData.data.display_name || 'TikTok User',
-          account_identifier: userData.data.open_id,
+          access_token,
+          refresh_token,
+          account_name: userData.data.user.display_name || 'TikTok User',
+          account_identifier: open_id,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
