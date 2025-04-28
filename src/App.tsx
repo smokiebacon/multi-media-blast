@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,10 +9,10 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import YouTubeCallback from "./pages/YouTubeCallback";
+import TikTokCallback from "./pages/TikTokCallback";
 
 const queryClient = new QueryClient();
 
-// Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
@@ -46,6 +45,7 @@ const App = () => (
             }
           />
           <Route path="/youtube-callback" element={<YouTubeCallback />} />
+          <Route path="/tiktok-callback" element={<TikTokCallback />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,6 +21,54 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
   onDisconnect,
 }) => {
   const { toast } = useToast();
+
+  const handleTikTokConnect = async () => {
+    try {
+      toast({
+        title: "Connecting to TikTok",
+        description: "Please wait while we connect to your TikTok account...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('tiktok-auth', {
+        body: { action: 'connect' },
+      });
+
+      if (error) {
+        console.error('TikTok connect error:', error);
+        throw error;
+      }
+
+      console.log("TikTok connect response:", data);
+      
+      if (!data.url) {
+        throw new Error("No auth URL returned from function");
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Redirect to the OAuth consent screen
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error connecting TikTok:', error);
+      toast({
+        title: "Connection Failed",
+        description: `Could not connect to TikTok: ${error.message || 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleConnect = () => {
+    if (platform.id === 'tiktok') {
+      handleTikTokConnect();
+    } else if (platform.id === 'youtube') {
+      handleYouTubeConnect();
+    } else {
+      onConnect(platform.id);
+    }
+  };
 
   const handleYouTubeConnect = async () => {
     try {
@@ -58,14 +105,6 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
         description: `Could not connect to YouTube: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
-    }
-  };
-
-  const handleConnect = () => {
-    if (platform.id === 'youtube') {
-      handleYouTubeConnect();
-    } else {
-      onConnect(platform.id);
     }
   };
 
