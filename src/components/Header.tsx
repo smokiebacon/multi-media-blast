@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { MoonIcon, SunIcon } from "lucide-react";
+import { MoonIcon, SunIcon, UserRound } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import {
   NavigationMenuLink,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 type HeaderProps = {
   isDarkMode: boolean;
@@ -34,11 +35,24 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
 
   return (
     <header className="w-full py-4 px-6 flex items-center justify-between bg-background border-b sticky top-0 z-50">
-      <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-        <div className="w-9 h-9 rounded-full bg-gradient-to-r from-brand-purple to-brand-teal flex items-center justify-center">
-          <span className="text-white font-bold text-lg">M</span>
+      <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="w-9 h-9 rounded-full bg-gradient-to-r from-brand-purple to-brand-teal flex items-center justify-center">
+            <span className="text-white font-bold text-lg">M</span>
+          </div>
+          <h1 className="text-xl font-bold tracking-tight">MultiMediaBlast</h1>
         </div>
-        <h1 className="text-xl font-bold tracking-tight">MultiMediaBlast</h1>
+        
+        {user && (
+          <div className="hidden md:flex items-center ml-6 space-x-2 border-l pl-6">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {user.email?.charAt(0).toUpperCase() || <UserRound className="h-4 w-4" />}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium">{user.email}</span>
+          </div>
+        )}
       </div>
       
       <NavigationMenu className="hidden md:flex">
