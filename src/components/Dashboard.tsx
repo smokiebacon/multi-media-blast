@@ -5,7 +5,8 @@ import {
   Upload, 
   Share2, 
   Activity,
-  LogOut
+  LogOut,
+  CreditCard
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +14,7 @@ import PostForm from './PostForm';
 import PlatformsManager from './PlatformsManager';
 import PostsList from './PostsList';
 import UploadStatus from './UploadStatus';
+import SubscriptionManager from './SubscriptionManager';
 import {
   SidebarProvider,
   Sidebar,
@@ -96,6 +98,17 @@ const Dashboard: React.FC = () => {
                   <span className="ml-3 font-medium">{t('sidebar.uploadStatus')}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  isActive={activeTab === "subscription"}
+                  onClick={() => setActiveTab("subscription")}
+                  tooltip="Subscription"
+                  className="w-full flex justify-center items-center"
+                >
+                  <CreditCard className="h-5 w-5" />
+                  <span className="ml-3 font-medium">{t('sidebar.subscription') || "Subscription"}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
             
             {/* Logout button at the bottom */}
@@ -132,6 +145,51 @@ const Dashboard: React.FC = () => {
             
             {activeTab === "status" && (
               <UploadStatus uploads={activeUploads} />
+            )}
+
+            {activeTab === "subscription" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-3xl font-bold tracking-tight mb-2">Subscription</h2>
+                  <p className="text-muted-foreground">Manage your subscription and billing</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="col-span-1">
+                    <SubscriptionManager />
+                  </div>
+                  <div className="col-span-1 space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Subscription Benefits</CardTitle>
+                        <CardDescription>What you get with MultiMediaBlast Pro</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-start">
+                          <Check className="mr-2 h-4 w-4 text-green-500 mt-1" />
+                          <div>
+                            <p className="font-medium">Unlimited Platforms</p>
+                            <p className="text-sm text-muted-foreground">Connect and post to as many platforms as you need</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <Check className="mr-2 h-4 w-4 text-green-500 mt-1" />
+                          <div>
+                            <p className="font-medium">Advanced Scheduling</p>
+                            <p className="text-sm text-muted-foreground">Schedule posts weeks or months in advance</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <Check className="mr-2 h-4 w-4 text-green-500 mt-1" />
+                          <div>
+                            <p className="font-medium">Performance Analytics</p>
+                            <p className="text-sm text-muted-foreground">Track engagement and reach across all platforms</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
