@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -169,18 +170,18 @@ const Index = () => {
       <Header isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
       
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="py-20 px-4 bg-gradient-to-br from-brand-purple/20 to-brand-teal/20 dark:from-brand-purple/10 dark:to-brand-teal/10">
-          <div className="container mx-auto max-w-6xl text-center">
-            <Badge variant="secondary" className="mb-4">New features available</Badge>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-brand-purple to-brand-teal bg-clip-text text-transparent">
-              Post Once, Share Everywhere
-            </h1>
-            <p className="text-xl mb-10 max-w-3xl mx-auto text-muted-foreground">
-              Save time by uploading your photos and videos to all your social media platforms simultaneously. 
-              Schedule, customize, and analyze your content in one place.
-            </p>
-            {!user && (
+        {/* Hero Section - Only show when not logged in */}
+        {!user && (
+          <section className="py-20 px-4 bg-gradient-to-br from-brand-purple/20 to-brand-teal/20 dark:from-brand-purple/10 dark:to-brand-teal/10">
+            <div className="container mx-auto max-w-6xl text-center">
+              <Badge variant="secondary" className="mb-4">New features available</Badge>
+              <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-brand-purple to-brand-teal bg-clip-text text-transparent">
+                Post Once, Share Everywhere
+              </h1>
+              <p className="text-xl mb-10 max-w-3xl mx-auto text-muted-foreground">
+                Save time by uploading your photos and videos to all your social media platforms simultaneously. 
+                Schedule, customize, and analyze your content in one place.
+              </p>
               <div className="flex gap-4 justify-center">
                 <Button onClick={() => navigate('/auth')} variant="default" size="lg" className="gap-2">
                   Get Started <ArrowRight className="h-4 w-4" />
@@ -189,9 +190,9 @@ const Index = () => {
                   Login
                 </Button>
               </div>
-            )}
-          </div>
-        </section>
+            </div>
+          </section>
+        )}
         
         {user && <Dashboard />}
 
