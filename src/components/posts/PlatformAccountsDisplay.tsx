@@ -8,9 +8,14 @@ import { Platform } from '@/types/platforms';
 type PlatformAccountsDisplayProps = {
   platformId: string;
   accounts: PlatformAccount[];
+  selectedAccountsOnly?: boolean;
 };
 
-const PlatformAccountsDisplay = ({ platformId, accounts }: PlatformAccountsDisplayProps) => {
+const PlatformAccountsDisplay = ({ 
+  platformId, 
+  accounts, 
+  selectedAccountsOnly = false 
+}: PlatformAccountsDisplayProps) => {
   const getPlatformInfo = (platformId: string): Platform | undefined => {
     return platforms.find(p => p.id === platformId);
   };

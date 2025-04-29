@@ -37,6 +37,7 @@ const PostItem = ({ post, platformAccounts, onEditPost }: PostItemProps) => {
       : "Created";
   
   const getAccountsForPost = (post: Post, platformId: string) => {
+    // Only return accounts that were explicitly selected for this post
     if (post.account_ids && post.account_ids.length > 0) {
       return platformAccounts.filter(account => 
         account.platform_id === platformId && 
@@ -44,7 +45,8 @@ const PostItem = ({ post, platformAccounts, onEditPost }: PostItemProps) => {
       );
     }
     
-    return platformAccounts.filter(account => account.platform_id === platformId);
+    // If no account_ids are specified, return an empty array instead of all accounts
+    return [];
   };
   
   return (
