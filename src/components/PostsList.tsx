@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,6 +11,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 // Import components
 import PostItem from './posts/PostItem';
@@ -34,6 +34,8 @@ type Post = {
   user_id: string;
 };
 
+type SortDirection = 'asc' | 'desc';
+
 const PostsList: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +43,8 @@ const PostsList: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   
   const pageSize = 10;
   const { user } = useAuth();
@@ -51,7 +55,7 @@ const PostsList: React.FC = () => {
     if (user) {
       fetchPosts();
     }
-  }, [user, currentPage]);
+  }, [user, currentPage, sortField, sortDirection]);
 
   const fetchPosts = async () => {
     try {
@@ -65,13 +69,26 @@ const PostsList: React.FC = () => {
         
       setTotalPages(Math.ceil((count || 0) / pageSize));
       
-      // Fetch paginated posts with account_ids field
-      const { data, error } = await supabase
+      // Start building the query
+      let query = supabase
         .from('posts')
         .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
+        .eq('user_id', user?.id);
+      
+      // Apply sorting if selected
+      if (sortField === 'status') {
+        query = query.order('status', { ascending: sortDirection === 'asc' });
+        // Add secondary ordering by date to keep consistent order for same status
+        query = query.order('created_at', { ascending: false });
+      } else {
+        // Default ordering
+        query = query.order('created_at', { ascending: false });
+      }
+      
+      // Apply pagination
+      query = query.range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
+      
+      const { data, error } = await query;
 
       if (error) {
         throw error;
@@ -102,6 +119,17 @@ const PostsList: React.FC = () => {
   const handlePostUpdated = () => {
     fetchPosts();
   };
+  
+  const handleSort = (field: string) => {
+    // If clicking on the same field, toggle direction
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, set as active and default to ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   return (
     <div>
@@ -121,7 +149,19 @@ const PostsList: React.FC = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Title</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => handleSort('status')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Status
+                          {sortField === 'status' && (
+                            sortDirection === 'asc' 
+                              ? <ChevronUp className="h-4 w-4" /> 
+                              : <ChevronDown className="h-4 w-4" />
+                          )}
+                        </div>
+                      </TableHead>
                       <TableHead>Platforms</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead className="w-[50px]">Actions</TableHead>
