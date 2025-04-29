@@ -30,7 +30,7 @@ type Post = {
   created_at: string;
   platforms: string[] | null;
   media_urls: string[] | null;
-  account_ids?: string[] | null;
+  account_ids: string[] | null;
   user_id: string;
 };
 
