@@ -29,12 +29,12 @@ serve(async (req) => {
     console.log("TikTok Auth Function Environment Check:");
     console.log("- PUBLIC_URL:", PUBLIC_URL);
     console.log("- REDIRECT_URI:", REDIRECT_URI);
-    console.log("- Has TIKTOK_CLIENT_KEY:", !!clientKey);
+    console.log("- client_key value:", clientKey ? clientKey.substring(0, 4) + "..." : "undefined");
     console.log("- Has TIKTOK_CLIENT_SECRET:", !!clientSecret);
-    // Log variable names that might be set instead
-    console.log("- Alternative env vars present:", 
+    // Log all environment variables that might contain TikTok-related values
+    console.log("- All env vars related to TikTok:", 
       Object.keys(Deno.env.toObject())
-        .filter(key => key.includes('TIKTOK') || key.includes('TIK'))
+        .filter(key => key.toUpperCase().includes('TIKTOK') || key.toUpperCase().includes('TIK'))
         .join(', ')
     );
 
@@ -66,7 +66,7 @@ serve(async (req) => {
     }
 
     if (action === 'callback' && code) {
-      console.log("Handling TikTok callback with code:", code);
+      console.log("Handling TikTok callback with code:", code.substring(0, 4) + "...");
       
       // Exchange code for access token
       const tokenUrl = 'https://open.tiktok.com/v2/oauth/token/';
@@ -79,7 +79,11 @@ serve(async (req) => {
       });
       
       console.log("Sending token request to:", tokenUrl);
-      console.log("Token request body:", tokenBody.toString());
+      console.log("Token request params:", {
+        client_key_first_chars: clientKey.substring(0, 4) + "...",
+        grant_type: 'authorization_code',
+        redirect_uri: REDIRECT_URI,
+      });
       
       const tokenResponse = await fetch(tokenUrl, {
         method: 'POST',
@@ -91,10 +95,17 @@ serve(async (req) => {
 
       const tokenData = await tokenResponse.json();
       console.log("Token response status:", tokenResponse.status);
-      console.log("Token response:", tokenData);
-
+      console.log("Token response headers:", Object.fromEntries(tokenResponse.headers.entries()));
+      
+      // Log error specifics but hide sensitive data
       if (tokenData.error || !tokenData.data) {
-        throw new Error(tokenData.error_description || 'Failed to get access token');
+        console.error("Token error:", {
+          error: tokenData.error,
+          error_description: tokenData.error_description,
+          message: tokenData.message,
+          response_data: JSON.stringify(tokenData).substring(0, 200) + "...",
+        });
+        throw new Error(tokenData.error_description || tokenData.message || 'Failed to get access token');
       }
 
       // Extract the access token and open_id from the response
@@ -116,10 +127,14 @@ serve(async (req) => {
 
       const userData = await userResponse.json();
       console.log("User data response status:", userResponse.status);
-      console.log("User data response:", userData);
-
+      
       if (userData.error || !userData.data) {
-        throw new Error(userData.error_description || 'Failed to get user info');
+        console.error("User data error:", {
+          error: userData.error,
+          error_description: userData.error_description,
+          message: userData.message,
+        });
+        throw new Error(userData.error_description || userData.message || 'Failed to get user info');
       }
 
       return new Response(

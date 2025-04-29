@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function TikTokCallback() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function TikTokCallback() {
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -49,19 +51,23 @@ export default function TikTokCallback() {
 
       try {
         console.log("Received code from TikTok, exchanging for token...");
+        console.log("Code value (first 4 chars):", code.substring(0, 4) + "...");
         
         const { data, error } = await supabase.functions.invoke('tiktok-auth', {
           body: { action: 'callback', code },
         });
 
+        console.log("TikTok callback response:", data);
+        
         if (error) {
           console.error("Supabase function error:", error);
+          setDebugInfo({ error });
           throw error;
         }
 
-        console.log("TikTok callback response:", data);
-
         if (data.error) {
+          console.error("TikTok API error:", data.error);
+          setDebugInfo({ apiError: data.error });
           throw new Error(data.error);
         }
 
@@ -86,7 +92,10 @@ export default function TikTokCallback() {
               refresh_token: data.refresh_token,
             });
 
-          if (dbError) throw dbError;
+          if (dbError) {
+            setDebugInfo({ dbError });
+            throw dbError;
+          }
 
           toast({
             title: "Success",
@@ -105,7 +114,10 @@ export default function TikTokCallback() {
             .eq('platform_id', 'tiktok')
             .eq('account_identifier', data.account_identifier);
 
-          if (updateError) throw updateError;
+          if (updateError) {
+            setDebugInfo({ updateError });
+            throw updateError;
+          }
 
           toast({
             title: "Success",
@@ -131,7 +143,7 @@ export default function TikTokCallback() {
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center p-8 border rounded-lg shadow-sm">
+      <div className="text-center p-8 border rounded-lg shadow-sm max-w-lg w-full">
         <h2 className="text-xl font-semibold mb-4">TikTok Connection</h2>
         
         {isProcessing ? (
@@ -143,6 +155,21 @@ export default function TikTokCallback() {
           <div className="text-destructive">
             <p className="mb-2">Connection failed</p>
             <p className="text-sm text-muted-foreground">{error}</p>
+            
+            {debugInfo && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <details className="text-xs text-left">
+                    <summary className="cursor-pointer">Debug Information</summary>
+                    <pre className="mt-2 p-2 bg-muted/50 rounded overflow-auto">
+                      {JSON.stringify(debugInfo, null, 2)}
+                    </pre>
+                  </details>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <p className="mt-4 text-sm">Redirecting you back to dashboard...</p>
           </div>
         ) : (

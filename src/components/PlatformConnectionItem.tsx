@@ -39,7 +39,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
       setConnecting('tiktok');
       toast({
         title: "Connecting to TikTok",
-        description: "Please wait while we connect to your TikTok account...",
+        description: "Please wait while we prepare TikTok authentication...",
       });
 
       const { data, error } = await supabase.functions.invoke('tiktok-auth', {
@@ -53,17 +53,28 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
 
       console.log("TikTok connect response:", data);
       
-      if (!data.url) {
-        throw new Error(data.error || "No auth URL returned from function");
+      if (!data || !data.url) {
+        const errorMessage = data?.error || "No auth URL returned from function";
+        console.error('TikTok URL error:', errorMessage);
+        throw new Error(errorMessage);
       }
 
-      // Redirect to the OAuth consent screen
-      window.location.href = data.url;
+      // Show a toast before redirecting
+      toast({
+        title: "Redirecting to TikTok",
+        description: "You'll be redirected to TikTok to authorize access. Please complete the authorization process.",
+      });
+      
+      // Short delay before redirecting to ensure toast is seen
+      setTimeout(() => {
+        // Redirect to the OAuth consent screen
+        window.location.href = data.url;
+      }, 1000);
     } catch (error) {
       console.error('Error connecting TikTok:', error);
       toast({
         title: "Connection Failed",
-        description: `Could not connect to TikTok: ${error.message || 'Unknown error'}. Please make sure the TikTok API credentials are configured in Supabase Edge Function secrets.`,
+        description: `Could not connect to TikTok: ${error.message || 'Unknown error'}. Please make sure the TikTok API credentials are configured correctly in Supabase Edge Function secrets.`,
         variant: "destructive"
       });
       setConnecting(null);
