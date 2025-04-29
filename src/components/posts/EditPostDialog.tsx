@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PlatformAccount } from '@/types/platform-accounts';
-import { uploadFileToStorage } from '@/utils/mediaUpload';
+import { uploadFileToStorage, editYouTubeVideo } from '@/utils/mediaUpload';
 
 // Import shared components
 import PostFormFields from './PostFormFields';
@@ -98,6 +99,86 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
     }
   };
 
+  const handleUploadStart = (upload: {id: string, platform: string, status: string}) => {
+    setUploads(prev => [...prev, upload]);
+    setIsStatusModalOpen(true);
+  };
+
+  const handleUploadUpdate = (id: string, status: string) => {
+    setUploads(prev => 
+      prev.map(upload => 
+        upload.id === id ? { ...upload, status } : upload
+      )
+    );
+  };
+
+  const updateYouTubeVideos = async (mediaUrl: string | null) => {
+    // Get YouTube accounts from selected accounts
+    const youtubeAccounts = platformAccounts.filter(account => 
+      selectedAccounts.includes(account.id) && account.platform_id === 'youtube'
+    );
+
+    // Get post metadata from Supabase to find YouTube video IDs
+    const { data: postData, error: postError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', post.id)
+      .single();
+
+    if (postError || !postData) {
+      console.error('Error fetching post data:', postError);
+      return;
+    }
+
+    // Check if this post has a YouTube video ID associated with it
+    // In a real app, you'd store YouTube video IDs in a separate column or in metadata
+    // For this example, we'll use a simple check on the platforms array
+    if (!postData.platforms?.includes('youtube')) {
+      console.log('No YouTube video associated with this post');
+      return;
+    }
+
+    // Loop through YouTube accounts and update videos
+    for (const account of youtubeAccounts) {
+      // In a real app, you'd fetch the videoId from your database
+      // Here we'll use a placeholder - in production you would need to track video IDs
+      // This is just a demonstration - ideally you'd store video IDs with each post
+      
+      // Get videos from this channel to find the one with matching title
+      try {
+        const { data, error } = await supabase.functions.invoke('youtube-search', {
+          body: {
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            query: postData.title, // Search by original title to find our video
+            channelId: account.account_identifier
+          }
+        });
+        
+        if (error || !data.items?.length) {
+          console.error('Error searching for videos:', error || 'No videos found');
+          continue;
+        }
+        
+        const videoId = data.items[0].id.videoId;
+        
+        if (videoId) {
+          await editYouTubeVideo(
+            videoId,
+            title, 
+            content,
+            account.id,
+            platformAccounts,
+            handleUploadStart,
+            handleUploadUpdate
+          );
+        }
+      } catch (error) {
+        console.error('Error updating YouTube video:', error);
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -129,6 +210,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
     }
     
     setIsSubmitting(true);
+    setUploads([]);
     
     try {
       // If a new media file was selected, upload it
@@ -140,6 +222,15 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
           throw new Error("Failed to upload media file");
         }
         mediaUrl = uploadedUrl;
+      }
+
+      // Try to update YouTube videos if there are any YouTube accounts selected
+      if (selectedAccounts.some(accountId => {
+        const account = platformAccounts.find(acc => acc.id === accountId);
+        return account && account.platform_id === 'youtube';
+      })) {
+        setIsStatusModalOpen(true);
+        await updateYouTubeVideos(mediaUrl);
       }
       
       // Get platform IDs from selected accounts
