@@ -55,50 +55,53 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
         )}
       </div>
       
-      <NavigationMenu className="hidden md:flex">
-        <NavigationMenuList>
-          <NavigationMenuItem>
-            <NavigationMenuLink 
-              onClick={() => scrollToSection('platforms')} 
-              className={navigationMenuTriggerStyle()}
-            >
-              Platforms
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuLink 
-              onClick={() => scrollToSection('features')} 
-              className={navigationMenuTriggerStyle()}
-            >
-              Features
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuLink 
-              onClick={() => scrollToSection('pricing')} 
-              className={navigationMenuTriggerStyle()}
-            >
-              Pricing
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuLink 
-              onClick={() => scrollToSection('testimonials')} 
-              className={navigationMenuTriggerStyle()}
-            >
-              Reviews
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuLink 
-              onClick={() => scrollToSection('faq')} 
-              className={navigationMenuTriggerStyle()}
-            >
-              FAQ
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
+      {/* Only show navigation menu when user is NOT logged in */}
+      {!user && (
+        <NavigationMenu className="hidden md:flex">
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuLink 
+                onClick={() => scrollToSection('platforms')} 
+                className={navigationMenuTriggerStyle()}
+              >
+                Platforms
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink 
+                onClick={() => scrollToSection('features')} 
+                className={navigationMenuTriggerStyle()}
+              >
+                Features
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink 
+                onClick={() => scrollToSection('pricing')} 
+                className={navigationMenuTriggerStyle()}
+              >
+                Pricing
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink 
+                onClick={() => scrollToSection('testimonials')} 
+                className={navigationMenuTriggerStyle()}
+              >
+                Reviews
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink 
+                onClick={() => scrollToSection('faq')} 
+                className={navigationMenuTriggerStyle()}
+              >
+                FAQ
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+      )}
       
       <div className="flex items-center gap-4">
         {user ? (
