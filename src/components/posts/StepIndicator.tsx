@@ -29,6 +29,13 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({
             onClick={() => onStepClick && onStepClick(step)}
             aria-label={`Step ${step}`}
             role={onStepClick ? "button" : "presentation"}
+            tabIndex={onStepClick ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (onStepClick && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                onStepClick(step);
+              }
+            }}
           >
             {currentStep > step ? (
               <Check className="h-4 w-4" />
