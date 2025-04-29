@@ -29,6 +29,7 @@ type Post = {
   created_at: string;
   platforms: string[] | null;
   media_urls: string[] | null;
+  account_ids?: string[] | null;
 };
 
 const PostsList: React.FC = () => {
@@ -59,7 +60,7 @@ const PostsList: React.FC = () => {
         
       setTotalPages(Math.ceil((count || 0) / pageSize));
       
-      // Fetch paginated posts
+      // Fetch paginated posts with account_ids field
       const { data, error } = await supabase
         .from('posts')
         .select('*')
@@ -112,7 +113,17 @@ const PostsList: React.FC = () => {
     return platforms.find(p => p.id === platformId);
   };
 
-  const getAccountsForPlatform = (platformId: string) => {
+  // Modified to only return accounts that are in the post's metadata
+  const getAccountsForPost = (post: Post, platformId: string) => {
+    // If post has account_ids field, filter accounts by those IDs
+    if (post.account_ids && post.account_ids.length > 0) {
+      return platformAccounts.filter(account => 
+        account.platform_id === platformId && 
+        post.account_ids?.includes(account.id)
+      );
+    }
+    
+    // Fallback: show all accounts for this platform (should not happen with updated data)
     return platformAccounts.filter(account => account.platform_id === platformId);
   };
 
@@ -168,7 +179,7 @@ const PostsList: React.FC = () => {
                             <div className="flex flex-wrap gap-2">
                               {post.platforms?.map((platformId) => {
                                 const platform = getPlatformInfo(platformId);
-                                const accounts = getAccountsForPlatform(platformId);
+                                const accounts = getAccountsForPost(post, platformId);
                                 
                                 if (!platform) return null;
                                 
