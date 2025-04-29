@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { CalendarIcon, Send, Clock } from 'lucide-react';
@@ -18,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 const PostForm: React.FC = () => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
+  const [title, setTitle] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +68,24 @@ const PostForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast({
+        title: "Not authenticated",
+        description: "Please login to create posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!title.trim()) {
+      toast({
+        title: "Title required",
+        description: "Please enter a title for your post.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!mediaFile) {
       toast({
         title: "No media selected",
@@ -87,22 +107,63 @@ const PostForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Generate a unique file path for the media
+      const fileExt = mediaFile.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+      
+      // For now, we're simulating the media upload - in a real app, you'd upload to Supabase Storage
+      // const { error: uploadError } = await supabase.storage
+      //  .from('media')
+      //  .upload(filePath, mediaFile);
+      
+      // if (uploadError) throw uploadError;
+      
+      // For this demo, just create a fake URL
+      const mediaUrl = `https://example.com/media/${filePath}`;
+      
+      // Get platform IDs from the selected accounts
+      const selectedPlatformAccounts = platformAccounts.filter(account => 
+        selectedAccounts.includes(account.id)
+      );
+      
+      const platformIds = [...new Set(selectedPlatformAccounts.map(account => account.platform_id))];
+      
+      // Determine status based on scheduled date
+      const status = selectedDate ? 'scheduled' : 'published';
+      
+      // Insert post data
+      const { error } = await supabase.from('posts').insert({
+        user_id: user.id,
+        title: title,
+        content: caption,
+        media_urls: [mediaUrl],
+        platforms: platformIds,
+        status: status,
+        scheduled_for: selectedDate ? selectedDate.toISOString() : null,
+        published_at: !selectedDate ? new Date().toISOString() : null,
+      });
+      
+      if (error) throw error;
       
       toast({
-        title: "Post successful!",
-        description: `Your media has been posted to ${selectedAccounts.length} account(s).`,
+        title: selectedDate ? "Post scheduled!" : "Post published!",
+        description: selectedDate 
+          ? `Your post has been scheduled for ${format(selectedDate, 'MMMM d, yyyy')}` 
+          : "Your post has been published successfully.",
       });
       
       // Reset form
       setMediaFile(null);
       setCaption('');
+      setTitle('');
       setSelectedDate(undefined);
       setSelectedAccounts([]);
     } catch (error) {
+      console.error('Error posting:', error);
       toast({
         title: "Post failed",
-        description: "There was an error posting your media. Please try again.",
+        description: "There was an error publishing your post. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -123,6 +184,20 @@ const PostForm: React.FC = () => {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border">
         <h2 className="text-xl font-semibold mb-4">Create New Post</h2>
+        
+        <div className="mb-6">
+          <label htmlFor="title" className="block text-sm font-medium mb-2">
+            Title
+          </label>
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter a title for your post..."
+            className="w-full"
+            required
+          />
+        </div>
         
         <div className="mb-6">
           <MediaDropzone onFileAccepted={handleMediaFileAccepted} />
@@ -166,6 +241,7 @@ const PostForm: React.FC = () => {
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   initialFocus
+                  disabled={(date) => date < new Date()}
                 />
               </PopoverContent>
             </Popover>
@@ -224,7 +300,7 @@ const PostForm: React.FC = () => {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isSubmitting || !mediaFile || selectedAccounts.length === 0}
+          disabled={isSubmitting || !mediaFile || selectedAccounts.length === 0 || !title.trim()}
         >
           {isSubmitting ? (
             <>Posting...</>
