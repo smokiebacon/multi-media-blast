@@ -1,20 +1,17 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { CalendarIcon, Send, Clock } from 'lucide-react';
+import { Send } from 'lucide-react';
 import MediaDropzone from './MediaDropzone';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { PlatformAccount } from '@/types/platform-accounts';
-import { platforms as allPlatforms } from '@/data/platforms';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/integrations/supabase/client';
+import { usePlatformAccounts } from '@/hooks/usePlatformAccounts';
+import { uploadFileToStorage, uploadToYouTube } from '@/utils/mediaUpload';
+import AccountSelector from './post/AccountSelector';
+import PostScheduler from './post/PostScheduler';
 
 interface PostFormProps {
   onUploadStart?: (upload: {id: string, platform: string, status: string}) => void;
@@ -28,35 +25,10 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [platformAccounts, setPlatformAccounts] = useState<PlatformAccount[]>([]);
+  
   const { toast } = useToast();
   const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      fetchPlatformAccounts();
-    }
-  }, [user]);
-
-  const fetchPlatformAccounts = async () => {
-    if (!user) return;
-    
-    const { data, error } = await supabase
-      .from('platform_accounts')
-      .select('*')
-      .eq('user_id', user.id);
-
-    if (error) {
-      toast({
-        title: "Error fetching accounts",
-        description: error.message,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setPlatformAccounts(data || []);
-  };
+  const { platformAccounts } = usePlatformAccounts(user?.id);
 
   const handleMediaFileAccepted = (file: File) => {
     setMediaFile(file);
@@ -68,93 +40,6 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
         ? prev.filter(id => id !== accountId) 
         : [...prev, accountId]
     );
-  };
-
-  const uploadFileToStorage = async (file: File) => {
-    if (!user) return null;
-    
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-    const filePath = `${user.id}/${fileName}`;
-    
-    const { data: bucketExists } = await supabase.storage.getBucket('media');
-    if (!bucketExists) {
-      await supabase.storage.createBucket('media', {
-        public: false,
-        fileSizeLimit: 1073741824,
-      });
-    }
-    
-    const { error: uploadError, data } = await supabase.storage
-      .from('media')
-      .upload(filePath, file);
-    
-    if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      throw uploadError;
-    }
-    
-    const { data: publicUrlData } = supabase.storage
-      .from('media')
-      .getPublicUrl(filePath);
-    
-    return publicUrlData.publicUrl;
-  };
-
-  const uploadToYouTube = async (
-    accountId: string, 
-    mediaUrl: string, 
-    title: string, 
-    description: string
-  ) => {
-    const uploadId = uuidv4();
-    const account = platformAccounts.find(acc => acc.id === accountId);
-    
-    if (!account || account.platform_id !== 'youtube') {
-      return { success: false, error: 'Invalid account' };
-    }
-    
-    if (!account.access_token) {
-      return { success: false, error: 'No access token available' };
-    }
-    
-    try {
-      onUploadStart?.({
-        id: uploadId,
-        platform: 'YouTube',
-        status: 'uploading'
-      });
-      
-      const { data, error } = await supabase.functions.invoke('youtube-upload', {
-        body: {
-          mediaUrl,
-          title,
-          description,
-          accessToken: account.access_token,
-          refreshToken: account.refresh_token,
-          channelId: account.account_identifier
-        }
-      });
-      
-      if (error) {
-        console.error('Error calling YouTube upload function:', error);
-        onUploadUpdate?.(uploadId, 'failed');
-        return { success: false, error: error.message };
-      }
-      
-      if (data.error) {
-        console.error('YouTube upload failed:', data.error);
-        onUploadUpdate?.(uploadId, 'failed');
-        return { success: false, error: data.error };
-      }
-      
-      onUploadUpdate?.(uploadId, 'completed');
-      return { success: true, videoId: data.videoId, videoUrl: data.videoUrl };
-    } catch (error) {
-      console.error('Error in YouTube upload:', error);
-      onUploadUpdate?.(uploadId, 'failed');
-      return { success: false, error: error.message };
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -199,7 +84,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     setIsSubmitting(true);
     
     try {
-      const mediaUrl = await uploadFileToStorage(mediaFile);
+      const mediaUrl = await uploadFileToStorage(mediaFile, user.id);
       if (!mediaUrl) {
         throw new Error("Failed to upload media file");
       }
@@ -216,17 +101,24 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
           const isVideo = mediaFile.type.startsWith('video/');
           if (isVideo) {
             uploadPromises.push(
-              uploadToYouTube(account.id, mediaUrl, title, caption)
-                .then(result => {
-                  uploadResults.push({
-                    platform: 'youtube',
-                    account: account.account_name,
-                    success: result.success,
-                    url: result.videoUrl || null,
-                    error: result.error || null
-                  });
-                  return result;
-                })
+              uploadToYouTube(
+                account.id, 
+                mediaUrl, 
+                title, 
+                caption, 
+                platformAccounts,
+                onUploadStart,
+                onUploadUpdate
+              ).then(result => {
+                uploadResults.push({
+                  platform: 'youtube',
+                  account: account.account_name,
+                  success: result.success,
+                  url: result.videoUrl || null,
+                  error: result.error || null
+                });
+                return result;
+              })
             );
           } else {
             toast({
@@ -266,6 +158,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
         variant: successfulUploads > 0 ? "default" : "destructive",
       });
       
+      // Reset form
       setMediaFile(null);
       setCaption('');
       setTitle('');
@@ -282,14 +175,6 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       setIsSubmitting(false);
     }
   };
-
-  const accountsByPlatform = platformAccounts.reduce<Record<string, PlatformAccount[]>>((acc, account) => {
-    if (!acc[account.platform_id]) {
-      acc[account.platform_id] = [];
-    }
-    acc[account.platform_id].push(account);
-    return acc;
-  }, {});
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -328,85 +213,16 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
           />
         </div>
         
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">
-            Schedule (Optional)
-          </label>
-          <div className="flex gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  initialFocus
-                  disabled={(date) => date < new Date()}
-                />
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="justify-start text-left font-normal text-muted-foreground">
-                  <Clock className="mr-2 h-4 w-4" />
-                  Set time
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-4">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">Time selection coming soon</p>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
+        <PostScheduler 
+          selectedDate={selectedDate} 
+          onDateChange={setSelectedDate} 
+        />
         
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">
-            Select Accounts
-          </label>
-          <div className="space-y-4">
-            {Object.entries(accountsByPlatform).map(([platformId, accounts]) => {
-              const platform = allPlatforms.find(p => p.id === platformId);
-              if (!platform) return null;
-              
-              return (
-                <div key={platformId} className="space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">{platform.name}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {accounts.map((account) => (
-                      <Badge
-                        key={account.id}
-                        variant={selectedAccounts.includes(account.id) ? "default" : "outline"}
-                        className="cursor-pointer py-2 px-3"
-                        onClick={() => toggleAccount(account.id)}
-                      >
-                        <platform.icon className="h-4 w-4 mr-1" />
-                        {account.account_name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-            {platformAccounts.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No accounts connected. Please connect accounts in the Platforms tab first.
-              </p>
-            )}
-          </div>
-        </div>
+        <AccountSelector 
+          platformAccounts={platformAccounts}
+          selectedAccounts={selectedAccounts}
+          onToggleAccount={toggleAccount}
+        />
         
         <Button 
           type="submit" 
