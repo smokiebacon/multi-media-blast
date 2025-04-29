@@ -1,0 +1,25 @@
+
+{
+  "header": {
+    "platforms": "プラットフォーム",
+    "features": "機能",
+    "pricing": "料金",
+    "reviews": "レビュー",
+    "faq": "よくある質問",
+    "dashboard": "ダッシュボード",
+    "login": "ログイン",
+    "logout": "ログアウト"
+  },
+  "sidebar": {
+    "createPost": "投稿を作成",
+    "yourPosts": "あなたの投稿",
+    "managePlatforms": "プラットフォームを管理",
+    "uploadStatus": "アップロード状況",
+    "logout": "ログアウト"
+  },
+  "languages": {
+    "en": "英語",
+    "ja": "日本語",
+    "zh": "中国語"
+  }
+}

@@ -7,6 +7,7 @@ import {
   Activity,
   LogOut
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import PostForm from './PostForm';
 import PlatformsManager from './PlatformsManager';
@@ -26,6 +27,7 @@ const Dashboard: React.FC = () => {
   const [activeUploads, setActiveUploads] = useState<Array<{id: string, platform: string, status: string}>>([]);
   const [activeTab, setActiveTab] = useState<string>("create");
   const { logout } = useAuth();
+  const { t } = useTranslation();
   
   const addUpload = (upload: {id: string, platform: string, status: string}) => {
     setActiveUploads(prev => [...prev, upload]);
@@ -58,7 +60,7 @@ const Dashboard: React.FC = () => {
                   className="w-full flex justify-center items-center"
                 >
                   <Upload className="h-5 w-5" />
-                  <span className="ml-3 font-medium">Create Post</span>
+                  <span className="ml-3 font-medium">{t('sidebar.createPost')}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -69,7 +71,7 @@ const Dashboard: React.FC = () => {
                   className="w-full flex justify-center items-center"
                 >
                   <FileText className="h-5 w-5" />
-                  <span className="ml-3 font-medium">Your Posts</span>
+                  <span className="ml-3 font-medium">{t('sidebar.yourPosts')}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -80,7 +82,7 @@ const Dashboard: React.FC = () => {
                   className="w-full flex justify-center items-center"
                 >
                   <Share2 className="h-5 w-5" />
-                  <span className="ml-3 font-medium">Manage Platforms</span>
+                  <span className="ml-3 font-medium">{t('sidebar.managePlatforms')}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -91,7 +93,7 @@ const Dashboard: React.FC = () => {
                   className="w-full flex justify-center items-center"
                 >
                   <Activity className="h-5 w-5" />
-                  <span className="ml-3 font-medium">Upload Status</span>
+                  <span className="ml-3 font-medium">{t('sidebar.uploadStatus')}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -106,7 +108,7 @@ const Dashboard: React.FC = () => {
                     className="w-full flex justify-center items-center text-red-500 hover:text-red-600 hover:bg-red-100/10"
                   >
                     <LogOut className="h-5 w-5" />
-                    <span className="ml-3 font-medium">Logout</span>
+                    <span className="ml-3 font-medium">{t('sidebar.logout')}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

@@ -5,6 +5,8 @@ import { MoonIcon, SunIcon, UserRound } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { cn } from "@/lib/utils";
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from './LanguageSelector';
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -24,6 +26,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isOnDashboard = location.pathname === '/dashboard';
+  const { t } = useTranslation();
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -66,7 +69,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
                 onClick={() => scrollToSection('platforms')} 
                 className={navigationMenuTriggerStyle()}
               >
-                Platforms
+                {t('header.platforms')}
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
@@ -74,7 +77,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
                 onClick={() => scrollToSection('features')} 
                 className={navigationMenuTriggerStyle()}
               >
-                Features
+                {t('header.features')}
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
@@ -82,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
                 onClick={() => scrollToSection('pricing')} 
                 className={navigationMenuTriggerStyle()}
               >
-                Pricing
+                {t('header.pricing')}
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
@@ -90,7 +93,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
                 onClick={() => scrollToSection('testimonials')} 
                 className={navigationMenuTriggerStyle()}
               >
-                Reviews
+                {t('header.reviews')}
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
@@ -98,7 +101,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
                 onClick={() => scrollToSection('faq')} 
                 className={navigationMenuTriggerStyle()}
               >
-                FAQ
+                {t('header.faq')}
               </NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>
@@ -106,6 +109,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
       )}
       
       <div className="flex items-center gap-4">
+        <LanguageSelector />
         {user ? (
           <>
             {!isOnDashboard && (
@@ -113,14 +117,14 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
                 variant="outline"
                 onClick={() => navigate('/dashboard')}
               >
-                Dashboard
+                {t('header.dashboard')}
               </Button>
             )}
             <Button
               variant="ghost"
               onClick={() => logout()}
             >
-              Logout
+              {t('header.logout')}
             </Button>
           </>
         ) : (
@@ -128,7 +132,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
             variant="outline"
             onClick={() => navigate('/auth')}
           >
-            Login
+            {t('header.login')}
           </Button>
         )}
         <Button

@@ -1,0 +1,25 @@
+
+{
+  "header": {
+    "platforms": "平台",
+    "features": "功能",
+    "pricing": "价格",
+    "reviews": "评论",
+    "faq": "常见问题",
+    "dashboard": "仪表板",
+    "login": "登录",
+    "logout": "登出"
+  },
+  "sidebar": {
+    "createPost": "创建帖子",
+    "yourPosts": "您的帖子",
+    "managePlatforms": "管理平台",
+    "uploadStatus": "上传状态",
+    "logout": "登出"
+  },
+  "languages": {
+    "en": "英语",
+    "ja": "日语",
+    "zh": "中文"
+  }
+}

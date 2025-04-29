@@ -1,0 +1,25 @@
+
+{
+  "header": {
+    "platforms": "Platforms",
+    "features": "Features",
+    "pricing": "Pricing",
+    "reviews": "Reviews",
+    "faq": "FAQ",
+    "dashboard": "Dashboard",
+    "login": "Login",
+    "logout": "Logout"
+  },
+  "sidebar": {
+    "createPost": "Create Post",
+    "yourPosts": "Your Posts",
+    "managePlatforms": "Manage Platforms",
+    "uploadStatus": "Upload Status",
+    "logout": "Logout"
+  },
+  "languages": {
+    "en": "English",
+    "ja": "Japanese",
+    "zh": "Chinese"
+  }
+}
