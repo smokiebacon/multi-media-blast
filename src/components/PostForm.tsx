@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,8 +14,14 @@ import { PlatformAccount } from '@/types/platform-accounts';
 import { platforms as allPlatforms } from '@/data/platforms';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { v4 as uuidv4 } from 'uuid';
 
-const PostForm: React.FC = () => {
+interface PostFormProps {
+  onUploadStart?: (upload: {id: string, platform: string, status: string}) => void;
+  onUploadUpdate?: (id: string, status: string) => void;
+}
+
+const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
   const [title, setTitle] = useState('');
@@ -65,6 +70,93 @@ const PostForm: React.FC = () => {
     );
   };
 
+  const uploadFileToStorage = async (file: File) => {
+    if (!user) return null;
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
+    
+    const { data: bucketExists } = await supabase.storage.getBucket('media');
+    if (!bucketExists) {
+      await supabase.storage.createBucket('media', {
+        public: false,
+        fileSizeLimit: 1073741824,
+      });
+    }
+    
+    const { error: uploadError, data } = await supabase.storage
+      .from('media')
+      .upload(filePath, file);
+    
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      throw uploadError;
+    }
+    
+    const { data: publicUrlData } = supabase.storage
+      .from('media')
+      .getPublicUrl(filePath);
+    
+    return publicUrlData.publicUrl;
+  };
+
+  const uploadToYouTube = async (
+    accountId: string, 
+    mediaUrl: string, 
+    title: string, 
+    description: string
+  ) => {
+    const uploadId = uuidv4();
+    const account = platformAccounts.find(acc => acc.id === accountId);
+    
+    if (!account || account.platform_id !== 'youtube') {
+      return { success: false, error: 'Invalid account' };
+    }
+    
+    if (!account.access_token) {
+      return { success: false, error: 'No access token available' };
+    }
+    
+    try {
+      onUploadStart?.({
+        id: uploadId,
+        platform: 'YouTube',
+        status: 'uploading'
+      });
+      
+      const { data, error } = await supabase.functions.invoke('youtube-upload', {
+        body: {
+          mediaUrl,
+          title,
+          description,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          channelId: account.account_identifier
+        }
+      });
+      
+      if (error) {
+        console.error('Error calling YouTube upload function:', error);
+        onUploadUpdate?.(uploadId, 'failed');
+        return { success: false, error: error.message };
+      }
+      
+      if (data.error) {
+        console.error('YouTube upload failed:', data.error);
+        onUploadUpdate?.(uploadId, 'failed');
+        return { success: false, error: data.error };
+      }
+      
+      onUploadUpdate?.(uploadId, 'completed');
+      return { success: true, videoId: data.videoId, videoUrl: data.videoUrl };
+    } catch (error) {
+      console.error('Error in YouTube upload:', error);
+      onUploadUpdate?.(uploadId, 'failed');
+      return { success: false, error: error.message };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -107,38 +199,57 @@ const PostForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Generate a unique file path for the media
-      const fileExt = mediaFile.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      const mediaUrl = await uploadFileToStorage(mediaFile);
+      if (!mediaUrl) {
+        throw new Error("Failed to upload media file");
+      }
       
-      // For now, we're simulating the media upload - in a real app, you'd upload to Supabase Storage
-      // const { error: uploadError } = await supabase.storage
-      //  .from('media')
-      //  .upload(filePath, mediaFile);
-      
-      // if (uploadError) throw uploadError;
-      
-      // For this demo, just create a fake URL
-      const mediaUrl = `https://example.com/media/${filePath}`;
-      
-      // Get platform IDs from the selected accounts
       const selectedPlatformAccounts = platformAccounts.filter(account => 
         selectedAccounts.includes(account.id)
       );
       
-      const platformIds = [...new Set(selectedPlatformAccounts.map(account => account.platform_id))];
+      const uploadPromises = [];
+      const uploadResults = [];
       
-      // Determine status based on scheduled date
+      for (const account of selectedPlatformAccounts) {
+        if (account.platform_id === 'youtube') {
+          const isVideo = mediaFile.type.startsWith('video/');
+          if (isVideo) {
+            uploadPromises.push(
+              uploadToYouTube(account.id, mediaUrl, title, caption)
+                .then(result => {
+                  uploadResults.push({
+                    platform: 'youtube',
+                    account: account.account_name,
+                    success: result.success,
+                    url: result.videoUrl || null,
+                    error: result.error || null
+                  });
+                  return result;
+                })
+            );
+          } else {
+            toast({
+              title: "YouTube upload skipped",
+              description: `YouTube only accepts video files. Your image was not uploaded to ${account.account_name}.`,
+              variant: "warning"
+            });
+          }
+        }
+      }
+      
+      if (uploadPromises.length > 0) {
+        await Promise.allSettled(uploadPromises);
+      }
+      
       const status = selectedDate ? 'scheduled' : 'published';
       
-      // Insert post data
       const { error } = await supabase.from('posts').insert({
         user_id: user.id,
         title: title,
         content: caption,
         media_urls: [mediaUrl],
-        platforms: platformIds,
+        platforms: [...new Set(selectedPlatformAccounts.map(account => account.platform_id))],
         status: status,
         scheduled_for: selectedDate ? selectedDate.toISOString() : null,
         published_at: !selectedDate ? new Date().toISOString() : null,
@@ -146,14 +257,15 @@ const PostForm: React.FC = () => {
       
       if (error) throw error;
       
+      const successfulUploads = uploadResults.filter(r => r.success).length;
+      const failedUploads = uploadResults.filter(r => !r.success).length;
+      
       toast({
         title: selectedDate ? "Post scheduled!" : "Post published!",
-        description: selectedDate 
-          ? `Your post has been scheduled for ${format(selectedDate, 'MMMM d, yyyy')}` 
-          : "Your post has been published successfully.",
+        description: `${successfulUploads} successful uploads, ${failedUploads} failed uploads.`,
+        variant: successfulUploads > 0 ? "default" : "destructive",
       });
       
-      // Reset form
       setMediaFile(null);
       setCaption('');
       setTitle('');
@@ -171,7 +283,6 @@ const PostForm: React.FC = () => {
     }
   };
 
-  // Group accounts by platform
   const accountsByPlatform = platformAccounts.reduce<Record<string, PlatformAccount[]>>((acc, account) => {
     if (!acc[account.platform_id]) {
       acc[account.platform_id] = [];

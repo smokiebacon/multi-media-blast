@@ -1,1 +1,32 @@
+
 project_id = "nmaqbyfikjmrcercgrtc"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[storage]
+enabled = true
+
+[functions.tiktok-auth]
+verify_jwt = true
+
+[functions.youtube-auth]
+verify_jwt = true
+
+[functions.youtube-upload]
+verify_jwt = true
