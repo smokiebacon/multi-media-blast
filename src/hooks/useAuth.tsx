@@ -54,7 +54,7 @@ export function useAuth() {
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-    navigate('/auth');
+    navigate('/'); // Changed from '/auth' to '/' to redirect to home page
   };
 
   return { user, session, loading, signUp, login, logout };
