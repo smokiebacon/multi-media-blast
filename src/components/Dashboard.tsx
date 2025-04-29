@@ -4,8 +4,10 @@ import {
   FileText, 
   Upload, 
   Share2, 
-  Activity
+  Activity,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import PostForm from './PostForm';
 import PlatformsManager from './PlatformsManager';
 import PostsList from './PostsList';
@@ -17,11 +19,13 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarFooter
 } from "@/components/ui/sidebar";
 
 const Dashboard: React.FC = () => {
   const [activeUploads, setActiveUploads] = useState<Array<{id: string, platform: string, status: string}>>([]);
   const [activeTab, setActiveTab] = useState<string>("create");
+  const { logout } = useAuth();
   
   const addUpload = (upload: {id: string, platform: string, status: string}) => {
     setActiveUploads(prev => [...prev, upload]);
@@ -37,12 +41,14 @@ const Dashboard: React.FC = () => {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full">
         <Sidebar side="left" variant="sidebar" collapsible="icon" className="bg-gradient-to-b from-sidebar to-sidebar/90 shadow-xl">
-          <SidebarContent className="flex flex-col items-center justify-center py-6">
+          <SidebarContent className="flex flex-col items-center justify-between h-full py-6">
+            {/* Logo at the top */}
             <div className="mb-8 flex justify-center">
-              <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
-                <span className="text-secondary-foreground text-xl font-bold">SM</span>
+              <div className="w-9 h-9 rounded-full bg-gradient-to-r from-brand-purple to-brand-teal flex items-center justify-center">
+                <span className="text-white font-bold text-lg">M</span>
               </div>
             </div>
+            
             <SidebarMenu className="space-y-4 w-full px-2">
               <SidebarMenuItem>
                 <SidebarMenuButton 
@@ -89,6 +95,22 @@ const Dashboard: React.FC = () => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
+            
+            {/* Logout button at the bottom */}
+            <SidebarFooter className="mt-auto w-full px-2">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    onClick={logout}
+                    tooltip="Logout"
+                    className="w-full flex justify-center items-center text-red-500 hover:text-red-600 hover:bg-red-100/10"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span className="ml-3 font-medium">Logout</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarFooter>
           </SidebarContent>
         </Sidebar>
         
