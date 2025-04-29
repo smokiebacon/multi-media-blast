@@ -8,7 +8,8 @@
     "faq": "常见问题",
     "dashboard": "仪表板",
     "login": "登录",
-    "logout": "登出"
+    "logout": "登出",
+    "signup": "注册"
   },
   "sidebar": {
     "createPost": "创建帖子",

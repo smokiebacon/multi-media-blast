@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -14,6 +15,7 @@ export default function Auth() {
   const { login, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +92,7 @@ export default function Auth() {
           </div>
           
           <Button type="submit" className="w-full">
-            {isLogin ? 'Sign In' : 'Sign Up'}
+            {isLogin ? t('header.login') : t('header.signup')}
           </Button>
         </form>
         

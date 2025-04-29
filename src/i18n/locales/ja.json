@@ -8,7 +8,8 @@
     "faq": "よくある質問",
     "dashboard": "ダッシュボード",
     "login": "ログイン",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "signup": "サインアップ"
   },
   "sidebar": {
     "createPost": "投稿を作成",
