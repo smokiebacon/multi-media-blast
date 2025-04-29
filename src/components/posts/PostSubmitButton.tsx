@@ -23,7 +23,7 @@ const PostSubmitButton: React.FC<PostSubmitButtonProps> = ({
       disabled={isSubmitting || !isValid}
     >
       {isSubmitting ? (
-        <>Posting...</>
+        <>Processing...</>
       ) : (
         <>
           <Send className="h-4 w-4 mr-2" />

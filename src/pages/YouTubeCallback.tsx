@@ -12,6 +12,7 @@ export default function YouTubeCallback() {
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -124,6 +125,8 @@ export default function YouTubeCallback() {
             description: "YouTube account reconnected successfully!",
           });
         }
+        
+        setIsSuccess(true);
       } catch (error) {
         console.error('Error in callback:', error);
         setError(error.message || "Unknown error");
@@ -134,7 +137,8 @@ export default function YouTubeCallback() {
         });
       } finally {
         setIsProcessing(false);
-        setTimeout(() => navigate('/dashboard'), 2000);
+        // Give more time before redirecting to ensure state updates properly
+        setTimeout(() => navigate('/dashboard'), 3000);
       }
     };
 
