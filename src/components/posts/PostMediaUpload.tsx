@@ -7,7 +7,7 @@ interface PostMediaUploadProps {
   mediaFile: File | null;
   mediaPreviewUrl: string | null;
   onFileAccepted: (file: File) => void;
-  onClearMedia?: () => void; // New prop for clearing media
+  onClearMedia?: () => void; // Prop for clearing media
 }
 
 const PostMediaUpload: React.FC<PostMediaUploadProps> = ({
@@ -52,11 +52,13 @@ const PostMediaUpload: React.FC<PostMediaUploadProps> = ({
           )}
         </div>
       ) : null}
-      {/* Hide preview in the MediaDropzone since we're handling it above */}
-      <MediaDropzone 
-        onFileAccepted={onFileAccepted} 
-        hidePreview={!!mediaPreviewUrl} 
-      />
+      {/* Only show the MediaDropzone when there is no preview */}
+      {!mediaPreviewUrl && (
+        <MediaDropzone 
+          onFileAccepted={onFileAccepted} 
+          hidePreview={!!mediaPreviewUrl} 
+        />
+      )}
     </div>
   );
 };
