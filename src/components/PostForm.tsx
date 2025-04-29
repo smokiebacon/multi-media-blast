@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +9,6 @@ import { Button } from '@/components/ui/button';
 
 // Import shared components
 import PostSubmitButton from './posts/PostSubmitButton';
-import AccountSelector from './post/AccountSelector';
 import PostScheduler from './post/PostScheduler';
 import UploadStatusModal from './posts/UploadStatusModal';
 import StepIndicator from './posts/StepIndicator';
@@ -131,9 +129,9 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
   const isCurrentStepValid = () => {
     switch (currentStep) {
       case 1:
-        // For step 1, we just need a valid post type
-        // If it's a media post, we need a valid media file
-        return postType === 'text' || (postType === 'media' && !!mediaFile && !mediaError);
+        // For step 1, we need a valid post type and at least one selected account
+        return (postType === 'text' || (postType === 'media' && !!mediaFile && !mediaError)) 
+               && selectedAccounts.length > 0;
       case 2:
         // For step 2, we just need a valid title
         return !!title.trim();
@@ -344,7 +342,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
           onStepClick={goToStep} 
         />
         
-        {/* Step 1: Post Type and Media Selection */}
+        {/* Step 1: Post Type, Media Selection and Account Selection */}
         {currentStep === 1 && (
           <PostTypeStep
             postType={postType}
@@ -354,6 +352,9 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
             mediaError={mediaError}
             onFileAccepted={handleMediaFileAccepted}
             onClearMedia={handleClearMedia}
+            platformAccounts={platformAccounts}
+            selectedAccounts={selectedAccounts}
+            onToggleAccount={toggleAccount}
           />
         )}
         
@@ -367,17 +368,11 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
           />
         )}
         
-        {/* Always show account selection and scheduling */}
+        {/* Always show scheduling on the final step */}
         <div className={currentStep === TOTAL_STEPS ? "block" : "hidden"}>
           <PostScheduler 
             selectedDate={selectedDate} 
             onDateChange={setSelectedDate} 
-          />
-          
-          <AccountSelector 
-            platformAccounts={platformAccounts}
-            selectedAccounts={selectedAccounts}
-            onToggleAccount={toggleAccount}
           />
         </div>
         

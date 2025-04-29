@@ -3,6 +3,8 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Image } from 'lucide-react';
 import PostMediaUpload from './PostMediaUpload';
+import AccountSelector from '../post/AccountSelector';
+import { PlatformAccount } from '@/types/platform-accounts';
 
 interface PostTypeStepProps {
   postType: 'media' | 'text';
@@ -12,6 +14,9 @@ interface PostTypeStepProps {
   mediaError: string | null;
   onFileAccepted: (file: File) => void;
   onClearMedia: () => void;
+  platformAccounts: PlatformAccount[];
+  selectedAccounts: string[];
+  onToggleAccount: (accountId: string) => void;
 }
 
 const PostTypeStep: React.FC<PostTypeStepProps> = ({
@@ -21,7 +26,10 @@ const PostTypeStep: React.FC<PostTypeStepProps> = ({
   mediaPreviewUrl,
   mediaError,
   onFileAccepted,
-  onClearMedia
+  onClearMedia,
+  platformAccounts,
+  selectedAccounts,
+  onToggleAccount
 }) => {
   return (
     <div className="space-y-6">
@@ -55,6 +63,14 @@ const PostTypeStep: React.FC<PostTypeStepProps> = ({
           </p>
         </TabsContent>
       </Tabs>
+      
+      <div className="mt-8">
+        <AccountSelector 
+          platformAccounts={platformAccounts}
+          selectedAccounts={selectedAccounts}
+          onToggleAccount={onToggleAccount}
+        />
+      </div>
     </div>
   );
 };

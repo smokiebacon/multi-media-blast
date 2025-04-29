@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import { uploadFileToStorage, editYouTubeVideo } from '@/utils/mediaUpload';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Import shared components
-import AccountSelector from '../post/AccountSelector';
 import PostScheduler from '../post/PostScheduler';
 import UploadStatusModal from './UploadStatusModal';
 import StepIndicator from './StepIndicator';
@@ -168,9 +166,9 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
   const isCurrentStepValid = () => {
     switch (currentStep) {
       case 1:
-        // For step 1, we just need a valid post type
-        // If it's a media post, we need a valid media file or existing media
-        return postType === 'text' || (postType === 'media' && (!!mediaFile || !!mediaPreviewUrl) && !mediaError);
+        // For step 1, we need a valid post type, at least one selected account, and if it's a media post, a valid media file or existing media
+        return (postType === 'text' || (postType === 'media' && (!!mediaFile || !!mediaPreviewUrl) && !mediaError)) 
+               && selectedAccounts.length > 0;
       case 2:
         // For step 2, we just need a valid title
         return !!title.trim();
@@ -405,7 +403,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
               onStepClick={goToStep} 
             />
             
-            {/* Step 1: Post Type and Media Selection */}
+            {/* Step 1: Post Type, Media Selection and Account Selection */}
             {currentStep === 1 && (
               <PostTypeStep
                 postType={postType}
@@ -415,6 +413,9 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
                 mediaError={mediaError}
                 onFileAccepted={handleMediaFileAccepted}
                 onClearMedia={handleClearMedia}
+                platformAccounts={platformAccounts}
+                selectedAccounts={selectedAccounts}
+                onToggleAccount={toggleAccount}
               />
             )}
             
@@ -428,20 +429,12 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
               />
             )}
             
-            {/* Always show account selection and scheduling in last step */}
+            {/* Always show scheduling in final step */}
             {currentStep === TOTAL_STEPS && (
-              <>
-                <PostScheduler 
-                  selectedDate={selectedDate} 
-                  onDateChange={setSelectedDate} 
-                />
-                
-                <AccountSelector 
-                  platformAccounts={platformAccounts}
-                  selectedAccounts={selectedAccounts}
-                  onToggleAccount={toggleAccount}
-                />
-              </>
+              <PostScheduler 
+                selectedDate={selectedDate} 
+                onDateChange={setSelectedDate} 
+              />
             )}
             
             {/* Step Navigation */}
