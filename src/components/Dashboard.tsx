@@ -6,7 +6,8 @@ import {
   Share2, 
   Activity,
   LogOut,
-  CreditCard
+  CreditCard,
+  Check
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +16,7 @@ import PlatformsManager from './PlatformsManager';
 import PostsList from './PostsList';
 import UploadStatus from './UploadStatus';
 import SubscriptionManager from './SubscriptionManager';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
   SidebarProvider,
   Sidebar,
