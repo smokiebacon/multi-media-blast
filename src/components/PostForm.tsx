@@ -12,6 +12,14 @@ import PostMediaUpload from './posts/PostMediaUpload';
 import PostSubmitButton from './posts/PostSubmitButton';
 import AccountSelector from './post/AccountSelector';
 import PostScheduler from './post/PostScheduler';
+import UploadStatusModal from './posts/UploadStatusModal';
+
+interface Upload {
+  id: string;
+  platform: string;
+  status: string; // 'pending', 'uploading', 'completed', 'failed'
+  message?: string;
+}
 
 interface PostFormProps {
   onUploadStart?: (upload: {id: string, platform: string, status: string}) => void;
@@ -27,6 +35,10 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Add state for uploads and modal
+  const [uploads, setUploads] = useState<Upload[]>([]);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  
   const { toast } = useToast();
   const { user } = useAuth();
   const { platformAccounts } = usePlatformAccounts(user?.id);
@@ -35,6 +47,21 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     setMediaFile(file);
     const previewUrl = URL.createObjectURL(file);
     setMediaPreviewUrl(previewUrl);
+  };
+
+  const handleUploadStart = (upload: {id: string, platform: string, status: string}) => {
+    setUploads(prev => [...prev, upload]);
+    setIsStatusModalOpen(true);
+    onUploadStart?.(upload);
+  };
+
+  const handleUploadUpdate = (id: string, status: string) => {
+    setUploads(prev => 
+      prev.map(upload => 
+        upload.id === id ? { ...upload, status } : upload
+      )
+    );
+    onUploadUpdate?.(id, status);
   };
 
   const toggleAccount = (accountId: string) => {
@@ -85,6 +112,8 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     }
     
     setIsSubmitting(true);
+    // Clear previous upload status
+    setUploads([]);
     
     try {
       const mediaUrl = await uploadFileToStorage(mediaFile, user.id);
@@ -110,8 +139,8 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
                 title, 
                 caption, 
                 platformAccounts,
-                onUploadStart,
-                onUploadUpdate
+                handleUploadStart,
+                handleUploadUpdate
               ).then(result => {
                 uploadResults.push({
                   platform: 'youtube',
@@ -217,7 +246,15 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
           isScheduled={!!selectedDate}
           actionText="Post"
         />
+
       </div>
+
+      {/* Upload Status Modal */}
+      <UploadStatusModal 
+        isOpen={isStatusModalOpen}
+        onOpenChange={setIsStatusModalOpen}
+        uploads={uploads}
+      />
     </form>
   );
 };

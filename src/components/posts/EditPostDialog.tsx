@@ -12,6 +12,14 @@ import PostFormFields from './PostFormFields';
 import PostMediaUpload from './PostMediaUpload';
 import AccountSelector from '../post/AccountSelector';
 import PostScheduler from '../post/PostScheduler';
+import UploadStatusModal from './UploadStatusModal';
+
+interface Upload {
+  id: string;
+  platform: string;
+  status: string; // 'pending', 'uploading', 'completed', 'failed'
+  message?: string;
+}
 
 interface EditPostDialogProps {
   post: {
@@ -50,6 +58,10 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Add state for uploads and modal
+  const [uploads, setUploads] = useState<Upload[]>([]);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  
   const { toast } = useToast();
   
   // Reset form when post changes
@@ -61,6 +73,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       setMediaFile(null);
       setSelectedDate(post.scheduled_for ? new Date(post.scheduled_for) : undefined);
       setSelectedAccounts(post.account_ids || []);
+      setUploads([]);
     }
   }, [isOpen, post]);
 
@@ -170,56 +183,65 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
   const isValid = !!title.trim() && !!mediaPreviewUrl && selectedAccounts.length > 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit Post</DialogTitle>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-6 py-4">
-          <PostFormFields
-            title={title}
-            setTitle={setTitle}
-            caption={content}
-            setCaption={setContent}
-          />
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Post</DialogTitle>
+          </DialogHeader>
           
-          <PostMediaUpload
-            mediaFile={mediaFile}
-            mediaPreviewUrl={mediaPreviewUrl}
-            onFileAccepted={handleMediaFileAccepted}
-          />
-          
-          <PostScheduler 
-            selectedDate={selectedDate} 
-            onDateChange={setSelectedDate} 
-          />
-          
-          <AccountSelector 
-            platformAccounts={platformAccounts}
-            selectedAccounts={selectedAccounts}
-            onToggleAccount={toggleAccount}
-          />
-          
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting || !isValid}
-            >
-              {isSubmitting ? "Updating..." : "Update Post"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+          <form onSubmit={handleSubmit} className="space-y-6 py-4">
+            <PostFormFields
+              title={title}
+              setTitle={setTitle}
+              caption={content}
+              setCaption={setContent}
+            />
+            
+            <PostMediaUpload
+              mediaFile={mediaFile}
+              mediaPreviewUrl={mediaPreviewUrl}
+              onFileAccepted={handleMediaFileAccepted}
+            />
+            
+            <PostScheduler 
+              selectedDate={selectedDate} 
+              onDateChange={setSelectedDate} 
+            />
+            
+            <AccountSelector 
+              platformAccounts={platformAccounts}
+              selectedAccounts={selectedAccounts}
+              onToggleAccount={toggleAccount}
+            />
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !isValid}
+              >
+                {isSubmitting ? "Updating..." : "Update Post"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Upload Status Modal */}
+      <UploadStatusModal 
+        isOpen={isStatusModalOpen}
+        onOpenChange={setIsStatusModalOpen}
+        uploads={uploads}
+      />
+    </>
   );
 };
 
