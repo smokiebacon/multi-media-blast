@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,6 +21,7 @@ const Index = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Check for user's preferred color scheme
@@ -40,7 +40,18 @@ const Index = () => {
       title: "Welcome to MultiMediaBlast!",
       description: "Connect your social accounts and start posting across platforms.",
     });
-  }, []);
+    
+    // Handle scrolling to section if coming from navigation
+    if (location.state && location.state.scrollTo) {
+      const sectionId = location.state.scrollTo;
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [location.state]);
 
   const toggleDarkMode = () => {
     setIsDarkMode(prev => {
@@ -192,7 +203,7 @@ const Index = () => {
 
         {/* Platforms Section */}
         {!user && (
-          <section className="py-16 px-4">
+          <section id="platforms" className="py-16 px-4">
             <div className="container mx-auto max-w-6xl text-center">
               <h2 className="text-3xl font-bold mb-4">Supported Platforms</h2>
               <p className="text-xl mb-10 max-w-3xl mx-auto text-muted-foreground">
@@ -227,7 +238,7 @@ const Index = () => {
 
         {/* Features Section */}
         {!user && (
-          <section className="py-16 px-4 bg-muted/50">
+          <section id="features" className="py-16 px-4 bg-muted/50">
             <div className="container mx-auto max-w-6xl">
               <div className="text-center mb-12">
                 <h2 className="text-3xl font-bold mb-4">Powerful Features</h2>
@@ -313,7 +324,7 @@ const Index = () => {
 
         {/* Testimonials Section */}
         {!user && (
-          <section className="py-16 px-4 bg-muted/50">
+          <section id="testimonials" className="py-16 px-4 bg-muted/50">
             <div className="container mx-auto max-w-6xl">
               <div className="text-center mb-12">
                 <h2 className="text-3xl font-bold mb-4">What Our Users Say</h2>
