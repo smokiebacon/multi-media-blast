@@ -4,8 +4,7 @@ import {
   FileText, 
   Upload, 
   Share2, 
-  Activity, 
-  List 
+  Activity
 } from 'lucide-react';
 import PostForm from './PostForm';
 import PlatformsManager from './PlatformsManager';
@@ -37,17 +36,23 @@ const Dashboard: React.FC = () => {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full">
-        <Sidebar side="left" variant="sidebar" collapsible="icon">
-          <SidebarContent>
-            <SidebarMenu>
+        <Sidebar side="left" variant="sidebar" collapsible="icon" className="bg-gradient-to-b from-sidebar to-sidebar/90 shadow-xl">
+          <SidebarContent className="flex flex-col items-center justify-center py-6">
+            <div className="mb-8 flex justify-center">
+              <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
+                <span className="text-secondary-foreground text-xl font-bold">SM</span>
+              </div>
+            </div>
+            <SidebarMenu className="space-y-4 w-full px-2">
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   isActive={activeTab === "create"}
                   onClick={() => setActiveTab("create")}
                   tooltip="Create Post"
+                  className="w-full flex justify-center items-center"
                 >
-                  <Upload className="h-4 w-4" />
-                  <span>Create Post</span>
+                  <Upload className="h-5 w-5" />
+                  <span className="ml-3 font-medium">Create Post</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -55,9 +60,10 @@ const Dashboard: React.FC = () => {
                   isActive={activeTab === "posts"}
                   onClick={() => setActiveTab("posts")}
                   tooltip="Your Posts"
+                  className="w-full flex justify-center items-center"
                 >
-                  <FileText className="h-4 w-4" />
-                  <span>Your Posts</span>
+                  <FileText className="h-5 w-5" />
+                  <span className="ml-3 font-medium">Your Posts</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -65,9 +71,10 @@ const Dashboard: React.FC = () => {
                   isActive={activeTab === "platforms"}
                   onClick={() => setActiveTab("platforms")}
                   tooltip="Manage Platforms"
+                  className="w-full flex justify-center items-center"
                 >
-                  <Share2 className="h-4 w-4" />
-                  <span>Manage Platforms</span>
+                  <Share2 className="h-5 w-5" />
+                  <span className="ml-3 font-medium">Manage Platforms</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -75,9 +82,10 @@ const Dashboard: React.FC = () => {
                   isActive={activeTab === "status"}
                   onClick={() => setActiveTab("status")}
                   tooltip="Upload Status"
+                  className="w-full flex justify-center items-center"
                 >
-                  <Activity className="h-4 w-4" />
-                  <span>Upload Status</span>
+                  <Activity className="h-5 w-5" />
+                  <span className="ml-3 font-medium">Upload Status</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
