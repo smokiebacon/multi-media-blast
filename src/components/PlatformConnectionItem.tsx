@@ -1,5 +1,6 @@
-import React from 'react';
-import { Check, Plus, X, AlertCircle } from 'lucide-react';
+
+import React, { useState } from 'react';
+import { Check, Plus, X, AlertCircle, Loader } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Platform } from '@/types/platforms';
@@ -21,9 +22,11 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
   onDisconnect,
 }) => {
   const { toast } = useToast();
+  const [connecting, setConnecting] = useState<string | null>(null);
 
   const handleTikTokConnect = async () => {
     try {
+      setConnecting('tiktok');
       toast({
         title: "Connecting to TikTok",
         description: "Please wait while we connect to your TikTok account...",
@@ -53,21 +56,13 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
         description: `Could not connect to TikTok: ${error.message || 'Unknown error'}. Please make sure the TikTok API credentials are configured in Supabase Edge Function secrets.`,
         variant: "destructive"
       });
-    }
-  };
-
-  const handleConnect = () => {
-    if (platform.id === 'tiktok') {
-      handleTikTokConnect();
-    } else if (platform.id === 'youtube') {
-      handleYouTubeConnect();
-    } else {
-      onConnect(platform.id);
+      setConnecting(null);
     }
   };
 
   const handleYouTubeConnect = async () => {
     try {
+      setConnecting('youtube');
       toast({
         title: "Connecting to YouTube",
         description: "Please wait while we connect to your YouTube account...",
@@ -85,7 +80,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
       console.log("YouTube connect response:", data);
       
       if (!data.url) {
-        throw new Error("No auth URL returned from function");
+        throw new Error(data.error || "No auth URL returned from function");
       }
 
       if (data.error) {
@@ -98,9 +93,20 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
       console.error('Error connecting YouTube:', error);
       toast({
         title: "Connection Failed",
-        description: `Could not connect to YouTube: ${error.message || 'Unknown error'}`,
+        description: `Could not connect to YouTube: ${error.message || 'Unknown error'}. Please check that YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET are properly configured in Supabase Edge Function secrets.`,
         variant: "destructive"
       });
+      setConnecting(null);
+    }
+  };
+
+  const handleConnect = () => {
+    if (platform.id === 'tiktok') {
+      handleTikTokConnect();
+    } else if (platform.id === 'youtube') {
+      handleYouTubeConnect();
+    } else {
+      onConnect(platform.id);
     }
   };
 
@@ -125,11 +131,21 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={platform.id === 'tiktok' ? handleTikTokConnect : platform.id === 'youtube' ? handleYouTubeConnect : () => onConnect(platform.id)}
+          onClick={handleConnect}
+          disabled={connecting === platform.id}
           className="text-xs h-8 px-3 py-1"
         >
-          <Plus className="w-3.5 h-3.5 mr-1" />
-          Connect New Account
+          {connecting === platform.id ? (
+            <>
+              <Loader className="w-3.5 h-3.5 mr-1 animate-spin" />
+              Connecting...
+            </>
+          ) : (
+            <>
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Connect New Account
+            </>
+          )}
         </Button>
       </div>
 

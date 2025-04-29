@@ -20,6 +20,13 @@ console.log("Credentials configured - Client ID exists:", !!YOUTUBE_CLIENT_ID);
 console.log("Credentials configured - Client Secret exists:", !!YOUTUBE_CLIENT_SECRET);
 console.log("Credentials configured - API Key exists:", !!YOUTUBE_API_KEY);
 
+// Log all environment variables starting with YOUTUBE to help debug
+console.log("All YouTube related environment variables:", 
+  Object.keys(Deno.env.toObject())
+    .filter(key => key.includes('YOUTUBE'))
+    .join(', ')
+);
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -35,7 +42,7 @@ serve(async (req) => {
       if (!YOUTUBE_CLIENT_ID) {
         console.error('YouTube Client ID is missing');
         return new Response(
-          JSON.stringify({ error: 'YouTube Client ID is not configured' }), 
+          JSON.stringify({ error: 'YouTube Client ID is not configured. Please set YOUTUBE_CLIENT_ID in Supabase Edge Function secrets.' }), 
           { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -65,7 +72,7 @@ serve(async (req) => {
 
       if (!YOUTUBE_CLIENT_ID || !YOUTUBE_CLIENT_SECRET) {
         return new Response(
-          JSON.stringify({ error: 'YouTube OAuth credentials are not configured' }), 
+          JSON.stringify({ error: 'YouTube OAuth credentials are not configured. Please set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET in Supabase Edge Function secrets.' }), 
           { 
             status: 500, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -117,7 +124,7 @@ serve(async (req) => {
 
         if (!channelData.items || channelData.items.length === 0) {
           console.error("No channel found:", channelData);
-          return new Response(JSON.stringify({ error: 'No YouTube channel found' }), {
+          return new Response(JSON.stringify({ error: 'No YouTube channel found', details: channelData }), {
             status: 404,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
