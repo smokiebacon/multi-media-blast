@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { platforms } from '@/data/platforms';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type Post = {
   id: string;
@@ -166,43 +165,32 @@ const PostsList: React.FC = () => {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
+                            <div className="flex flex-wrap gap-2">
                               {post.platforms?.map((platformId) => {
                                 const platform = getPlatformInfo(platformId);
                                 const accounts = getAccountsForPlatform(platformId);
                                 
                                 if (!platform) return null;
                                 
-                                if (accounts.length === 0) {
-                                  return (
-                                    <Badge key={platformId} variant="outline" className="bg-muted">
+                                return (
+                                  <div key={platformId} className="flex flex-col">
+                                    <Badge variant="outline" className="bg-muted mb-1">
                                       <platform.icon className="h-3 w-3 mr-1" />
                                       {platform.name}
                                     </Badge>
-                                  );
-                                }
-                                
-                                return (
-                                  <TooltipProvider key={platformId}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="bg-muted cursor-help">
-                                          <platform.icon className="h-3 w-3 mr-1" />
-                                          {platform.name} ({accounts.length})
-                                        </Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="w-auto p-2">
-                                        <div className="text-xs font-medium">
-                                          <p className="mb-1">Accounts:</p>
-                                          <ul className="list-disc pl-4">
-                                            {accounts.map(account => (
-                                              <li key={account.id}>{account.account_name}</li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                    {accounts.length > 0 ? (
+                                      <div className="text-xs text-muted-foreground pl-2">
+                                        {accounts.map((account, idx) => (
+                                          <div key={account.id}>
+                                            {account.account_name}
+                                            {idx < accounts.length - 1 ? ", " : ""}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="text-xs text-muted-foreground pl-2">No accounts</div>
+                                    )}
+                                  </div>
                                 );
                               })}
                             </div>
