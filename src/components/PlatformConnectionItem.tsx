@@ -60,13 +60,30 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
         throw new Error(errorMessage);
       }
 
-      // Add event listener to catch any errors with custom URL schemes
+      // Add more comprehensive error handling for browser compatibility issues
       const handleError = (e) => {
-        console.warn("Custom URL scheme error prevented:", e);
-        // Continue with the flow - no need to show an error as this is expected behavior in some browsers
+        // Only prevent errors related to TikTok URL schemes
+        if (e.message && (
+            e.message.includes('bytedance') || 
+            e.message.includes('tiktok') ||
+            e.message.includes('Failed to launch') || 
+            e.message.includes('scheme does not have a registered handler')
+          )) {
+          console.warn("TikTok URL scheme error prevented:", e);
+          e.preventDefault();
+          // This is expected in web browsers - continue with the flow
+          return true;
+        }
+        return false;
       };
       
+      // Use both error and unhandledrejection event listeners with once:true
       window.addEventListener('error', handleError, { once: true });
+      window.addEventListener('unhandledrejection', (e) => {
+        if (e.reason && handleError({message: e.reason.toString()})) {
+          e.preventDefault();
+        }
+      }, { once: true });
 
       // Show a toast before redirecting
       toast({
@@ -77,11 +94,10 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
       // Short delay before redirecting to ensure toast is seen
       setTimeout(() => {
         try {
-          // Redirect to the OAuth consent screen
+          console.log("Navigating to TikTok auth URL:", data.url);
           window.location.href = data.url;
         } catch (e) {
           console.error("Redirect error:", e);
-          // If there's an error with the redirect, show a message
           toast({
             title: "Redirection Issue",
             description: "Could not redirect to TikTok. Please try again or use a different browser.",
