@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Check, Plus, X, AlertCircle, Loader } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -7,6 +6,16 @@ import { Platform } from '@/types/platforms';
 import { PlatformAccount } from '@/types/platform-accounts';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PlatformConnectionItemProps {
   platform: Platform;
@@ -23,6 +32,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
 }) => {
   const { toast } = useToast();
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [disconnectAccount, setDisconnectAccount] = useState<string | null>(null);
 
   const handleTikTokConnect = async () => {
     try {
@@ -148,6 +158,21 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
     }
   };
 
+  const confirmDisconnect = (accountId: string) => {
+    setDisconnectAccount(accountId);
+  };
+
+  const handleDisconnectConfirmed = () => {
+    if (disconnectAccount) {
+      onDisconnect(disconnectAccount);
+      setDisconnectAccount(null);
+    }
+  };
+
+  const handleCancelDisconnect = () => {
+    setDisconnectAccount(null);
+  };
+
   return (
     <div className="rounded-lg p-4 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
@@ -198,7 +223,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onDisconnect(account.id)}
+                onClick={() => confirmDisconnect(account.id)}
                 className="text-xs h-6 px-2 text-destructive hover:bg-destructive/10"
               >
                 <X className="w-3.5 h-3.5" />
@@ -207,6 +232,26 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!disconnectAccount} onOpenChange={(open) => {
+        if (!open) setDisconnectAccount(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will disconnect the account from your profile.
+              You can reconnect it later if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDisconnect}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisconnectConfirmed} className="bg-destructive text-destructive-foreground">
+              Disconnect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
