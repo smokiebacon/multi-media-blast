@@ -100,11 +100,49 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
     }
   };
 
+  const handleInstagramConnect = async () => {
+    try {
+      setConnecting('instagram');
+      toast({
+        title: "Connecting to Instagram",
+        description: "Please wait while we connect to your Instagram account...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('instagram-auth', {
+        body: { action: 'connect' },
+      });
+
+      if (error) {
+        console.error('Instagram connect error:', error);
+        throw new Error(error.message || "Error connecting to Instagram");
+      }
+
+      console.log("Instagram connect response:", data);
+      
+      if (!data.url) {
+        throw new Error(data.error || "No auth URL returned from function");
+      }
+
+      // Redirect to the OAuth consent screen
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error connecting Instagram:', error);
+      toast({
+        title: "Connection Failed",
+        description: `Could not connect to Instagram: ${error.message || 'Unknown error'}. Please make sure the INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET are configured in Supabase Edge Function secrets.`,
+        variant: "destructive"
+      });
+      setConnecting(null);
+    }
+  };
+
   const handleConnect = () => {
     if (platform.id === 'tiktok') {
       handleTikTokConnect();
     } else if (platform.id === 'youtube') {
       handleYouTubeConnect();
+    } else if (platform.id === 'instagram') {
+      handleInstagramConnect();
     } else {
       onConnect(platform.id);
     }
