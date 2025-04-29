@@ -48,6 +48,15 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     setMediaPreviewUrl(previewUrl);
   };
 
+  const handleClearMedia = () => {
+    // If there's a preview URL, revoke it to prevent memory leaks
+    if (mediaPreviewUrl) {
+      URL.revokeObjectURL(mediaPreviewUrl);
+    }
+    setMediaFile(null);
+    setMediaPreviewUrl(null);
+  };
+
   const handleUploadStart = (upload: {id: string, platform: string, status: string}) => {
     setUploads(prev => [...prev, upload]);
     setIsStatusModalOpen(true);
@@ -234,6 +243,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
           mediaFile={mediaFile}
           mediaPreviewUrl={mediaPreviewUrl}
           onFileAccepted={handleMediaFileAccepted}
+          onClearMedia={handleClearMedia}
         />
         
         <PostScheduler 

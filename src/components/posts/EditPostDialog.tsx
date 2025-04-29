@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -82,6 +81,15 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
     // Create a preview URL for the new file
     const previewUrl = URL.createObjectURL(file);
     setMediaPreviewUrl(previewUrl);
+  };
+
+  const handleClearMedia = () => {
+    // If there's a new media file with a preview URL, revoke it
+    if (mediaFile && mediaPreviewUrl && !post.media_urls?.includes(mediaPreviewUrl)) {
+      URL.revokeObjectURL(mediaPreviewUrl);
+    }
+    setMediaFile(null);
+    setMediaPreviewUrl(null);
   };
 
   const toggleAccount = (accountId: string) => {
@@ -303,6 +311,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
               mediaFile={mediaFile}
               mediaPreviewUrl={mediaPreviewUrl}
               onFileAccepted={handleMediaFileAccepted}
+              onClearMedia={handleClearMedia}
             />
             
             <PostScheduler 
