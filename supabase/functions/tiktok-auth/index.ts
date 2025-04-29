@@ -8,7 +8,10 @@ const corsHeaders = {
 
 // Get base URL from environment variable or use a fallback
 const PUBLIC_URL = Deno.env.get('PUBLIC_URL') || 'http://localhost:3000';
-const REDIRECT_URI = `${PUBLIC_URL}/tiktok-callback`;
+// Fix the double slash issue by ensuring we don't add an extra slash
+const REDIRECT_URI = PUBLIC_URL.endsWith('/') 
+  ? `${PUBLIC_URL}tiktok-callback` 
+  : `${PUBLIC_URL}/tiktok-callback`;
 
 serve(async (req) => {
   // Handle CORS preflight requests
