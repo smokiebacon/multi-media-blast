@@ -13,9 +13,8 @@ const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY') || '';
 
 // Important: Make sure this matches EXACTLY what you've registered in Google Cloud Console
 // Including the protocol (https://), and there should be no trailing slashes
-const REDIRECT_URI = Deno.env.get('PUBLIC_URL') 
-  ? `${Deno.env.get('PUBLIC_URL')}/youtube-callback`.replace(/\/+$/, '') 
-  : 'https://45efbe08-2f80-47f8-b48a-801bdd07efa3.lovableproject.com/youtube-callback';
+const BASE_URL = Deno.env.get('PUBLIC_URL') || 'https://45efbe08-2f80-47f8-b48a-801bdd07efa3.lovableproject.com';
+const REDIRECT_URI = `${BASE_URL.replace(/\/+$/, '')}/youtube-callback`;
 
 console.log("Function initialized with redirect URI:", REDIRECT_URI);
 console.log("Credentials configured - Client ID exists:", !!YOUTUBE_CLIENT_ID);
