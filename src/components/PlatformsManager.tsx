@@ -1,21 +1,15 @@
 
 import React, { useEffect, useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import PlatformConnectionItem from '@/components/PlatformConnectionItem';
 import { platforms as allPlatforms } from '@/data/platforms';
-import { Platform } from '@/types/platforms';
 import { PlatformAccount } from '@/types/platform-accounts';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import PlatformsTabs from './platforms/PlatformsTabs';
+import PlatformsAuthState from './platforms/PlatformsAuthState';
 
-interface PlatformsManagerProps {
-  connectedPlatforms?: Platform[];
-  setConnectedPlatforms?: React.Dispatch<React.SetStateAction<Platform[]>>;
-}
-
-const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
+const PlatformsManager: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [platformAccounts, setPlatformAccounts] = useState<PlatformAccount[]>([]);
@@ -114,21 +108,8 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
     });
   };
 
-  const getConnectedAccountsForPlatform = (platformId: string) => {
-    return platformAccounts.filter(account => account.platform_id === platformId);
-  };
-
   if (!user) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Platform Connections</CardTitle>
-          <CardDescription>
-            Please log in to manage your platform connections.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
+    return <PlatformsAuthState />;
   }
 
   return (
@@ -140,71 +121,13 @@ const PlatformsManager: React.FC<PlatformsManagerProps> = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="py-4 text-center text-muted-foreground">
-            Loading your connected accounts...
-          </div>
-        ) : (
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="all">All Platforms</TabsTrigger>
-              <TabsTrigger value="connected">Connected</TabsTrigger>
-              <TabsTrigger value="available">Available</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all" className="space-y-4">
-              {allPlatforms.map(platform => (
-                <PlatformConnectionItem
-                  key={platform.id}
-                  platform={platform}
-                  connectedAccounts={getConnectedAccountsForPlatform(platform.id)}
-                  onConnect={handleConnect}
-                  onDisconnect={handleDisconnect}
-                />
-              ))}
-            </TabsContent>
-            
-            <TabsContent value="connected" className="space-y-4">
-              {allPlatforms
-                .filter(platform => getConnectedAccountsForPlatform(platform.id).length > 0)
-                .map(platform => (
-                  <PlatformConnectionItem
-                    key={platform.id}
-                    platform={platform}
-                    connectedAccounts={getConnectedAccountsForPlatform(platform.id)}
-                    onConnect={handleConnect}
-                    onDisconnect={handleDisconnect}
-                  />
-                ))}
-                
-                {!allPlatforms.some(platform => getConnectedAccountsForPlatform(platform.id).length > 0) && (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No connected platforms yet. Connect a platform to get started.
-                  </div>
-                )}
-            </TabsContent>
-            
-            <TabsContent value="available" className="space-y-4">
-              {allPlatforms
-                .filter(platform => getConnectedAccountsForPlatform(platform.id).length === 0)
-                .map(platform => (
-                  <PlatformConnectionItem
-                    key={platform.id}
-                    platform={platform}
-                    connectedAccounts={[]}
-                    onConnect={handleConnect}
-                    onDisconnect={handleDisconnect}
-                  />
-                ))}
-                
-                {!allPlatforms.some(platform => getConnectedAccountsForPlatform(platform.id).length === 0) && (
-                  <div className="text-center py-4 text-muted-foreground">
-                    All platforms are connected. Great job!
-                  </div>
-                )}
-            </TabsContent>
-          </Tabs>
-        )}
+        <PlatformsTabs 
+          allPlatforms={allPlatforms}
+          platformAccounts={platformAccounts}
+          isLoading={isLoading}
+          onConnect={handleConnect}
+          onDisconnect={handleDisconnect}
+        />
       </CardContent>
     </Card>
   );
