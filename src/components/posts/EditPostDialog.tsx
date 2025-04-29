@@ -6,15 +6,15 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PlatformAccount } from '@/types/platform-accounts';
 import { uploadFileToStorage, editYouTubeVideo } from '@/utils/mediaUpload';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Image } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Import shared components
-import PostFormFields from './PostFormFields';
-import PostMediaUpload from './PostMediaUpload';
 import AccountSelector from '../post/AccountSelector';
 import PostScheduler from '../post/PostScheduler';
 import UploadStatusModal from './UploadStatusModal';
+import StepIndicator from './StepIndicator';
+import PostTypeStep from './PostTypeStep';
+import PostDetailsStep from './PostDetailsStep';
 
 interface Upload {
   id: string;
@@ -45,6 +45,7 @@ const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 type PostType = 'media' | 'text';
+const TOTAL_STEPS = 2;
 
 const EditPostDialog: React.FC<EditPostDialogProps> = ({
   post,
@@ -53,6 +54,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
   onPostUpdated,
   platformAccounts,
 }) => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [postType, setPostType] = useState<PostType>('media');
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content || '');
@@ -86,6 +88,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       setSelectedDate(post.scheduled_for ? new Date(post.scheduled_for) : undefined);
       setSelectedAccounts(post.account_ids || []);
       setUploads([]);
+      setCurrentStep(1);
       // Determine post type based on media_urls (if present, it's a media post)
       setPostType(post.post_type || (post.media_urls && post.media_urls.length > 0 ? 'media' : 'text'));
     }
@@ -159,6 +162,43 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
         upload.id === id ? { ...upload, status } : upload
       )
     );
+  };
+
+  // Check if the current step is valid
+  const isCurrentStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        // For step 1, we just need a valid post type
+        // If it's a media post, we need a valid media file or existing media
+        return postType === 'text' || (postType === 'media' && (!!mediaFile || !!mediaPreviewUrl) && !mediaError);
+      case 2:
+        // For step 2, we just need a valid title
+        return !!title.trim();
+      default:
+        return false;
+    }
+  };
+
+  // Navigate to next step
+  const goToNextStep = () => {
+    if (currentStep < TOTAL_STEPS && isCurrentStepValid()) {
+      setCurrentStep(prevStep => prevStep + 1);
+    }
+  };
+
+  // Navigate to previous step
+  const goToPreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prevStep => prevStep - 1);
+    }
+  };
+
+  // Go directly to a step if it's accessible
+  const goToStep = (step: number) => {
+    // Only allow going to a step if all previous steps are valid or if going backwards
+    if (step < currentStep || isCurrentStepValid()) {
+      setCurrentStep(step);
+    }
   };
 
   const updateYouTubeVideos = async (mediaUrl: string | null) => {
@@ -359,77 +399,92 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="space-y-6 py-4">
-            {/* Post Type Tabs */}
-            <Tabs 
-              defaultValue={postType} 
-              value={postType} 
-              onValueChange={(value) => setPostType(value as PostType)}
-              className="w-full"
-            >
-              <TabsList className="grid w-full grid-cols-2 mb-2">
-                <TabsTrigger value="media" className="flex items-center gap-2">
-                  <Image className="h-4 w-4" />
-                  Media Post
-                </TabsTrigger>
-                <TabsTrigger value="text" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Text Post
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="media" className="space-y-4 pt-2">
-                <PostFormFields
-                  title={title}
-                  setTitle={setTitle}
-                  caption={content}
-                  setCaption={setContent}
+            <StepIndicator 
+              currentStep={currentStep} 
+              totalSteps={TOTAL_STEPS} 
+              onStepClick={goToStep} 
+            />
+            
+            {/* Step 1: Post Type and Media Selection */}
+            {currentStep === 1 && (
+              <PostTypeStep
+                postType={postType}
+                setPostType={setPostType}
+                mediaFile={mediaFile}
+                mediaPreviewUrl={mediaPreviewUrl}
+                mediaError={mediaError}
+                onFileAccepted={handleMediaFileAccepted}
+                onClearMedia={handleClearMedia}
+              />
+            )}
+            
+            {/* Step 2: Post Details */}
+            {currentStep === 2 && (
+              <PostDetailsStep
+                title={title}
+                setTitle={setTitle}
+                caption={content}
+                setCaption={setContent}
+              />
+            )}
+            
+            {/* Always show account selection and scheduling in last step */}
+            {currentStep === TOTAL_STEPS && (
+              <>
+                <PostScheduler 
+                  selectedDate={selectedDate} 
+                  onDateChange={setSelectedDate} 
                 />
                 
-                <PostMediaUpload
-                  mediaFile={mediaFile}
-                  mediaPreviewUrl={mediaPreviewUrl}
-                  onFileAccepted={handleMediaFileAccepted}
-                  onClearMedia={handleClearMedia}
-                  error={mediaError}
+                <AccountSelector 
+                  platformAccounts={platformAccounts}
+                  selectedAccounts={selectedAccounts}
+                  onToggleAccount={toggleAccount}
                 />
-              </TabsContent>
+              </>
+            )}
+            
+            {/* Step Navigation */}
+            <div className="flex justify-between mt-6">
+              {currentStep > 1 ? (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={goToPreviousStep}
+                  className="flex items-center"
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Back
+                </Button>
+              ) : (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+              )}
               
-              <TabsContent value="text" className="space-y-4 pt-2">
-                <PostFormFields
-                  title={title}
-                  setTitle={setTitle}
-                  caption={content}
-                  setCaption={setContent}
-                />
-              </TabsContent>
-            </Tabs>
-            
-            <PostScheduler 
-              selectedDate={selectedDate} 
-              onDateChange={setSelectedDate} 
-            />
-            
-            <AccountSelector 
-              platformAccounts={platformAccounts}
-              selectedAccounts={selectedAccounts}
-              onToggleAccount={toggleAccount}
-            />
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || !isValid}
-              >
-                {isSubmitting ? "Updating..." : "Update Post"}
-              </Button>
+              {currentStep < TOTAL_STEPS ? (
+                <Button 
+                  type="button"
+                  onClick={goToNextStep}
+                  disabled={!isCurrentStepValid()}
+                  className="flex items-center"
+                >
+                  Next
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || !isValid}
+                >
+                  {isSubmitting ? "Updating..." : "Update Post"}
+                </Button>
+              )}
             </div>
           </form>
         </DialogContent>

@@ -5,16 +5,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { usePlatformAccounts } from '@/hooks/usePlatformAccounts';
 import { uploadFileToStorage, uploadToYouTube } from '@/utils/mediaUpload';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Image } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Import shared components
-import PostFormFields from './posts/PostFormFields';
-import PostMediaUpload from './posts/PostMediaUpload';
 import PostSubmitButton from './posts/PostSubmitButton';
 import AccountSelector from './post/AccountSelector';
 import PostScheduler from './post/PostScheduler';
 import UploadStatusModal from './posts/UploadStatusModal';
+import StepIndicator from './posts/StepIndicator';
+import PostTypeStep from './posts/PostTypeStep';
+import PostDetailsStep from './posts/PostDetailsStep';
 
 interface Upload {
   id: string;
@@ -33,8 +34,10 @@ const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 type PostType = 'media' | 'text';
+const TOTAL_STEPS = 2;
 
 const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [postType, setPostType] = useState<PostType>('media');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
@@ -122,6 +125,43 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
         ? prev.filter(id => id !== accountId) 
         : [...prev, accountId]
     );
+  };
+
+  // Check if the current step is valid
+  const isCurrentStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        // For step 1, we just need a valid post type
+        // If it's a media post, we need a valid media file
+        return postType === 'text' || (postType === 'media' && !!mediaFile && !mediaError);
+      case 2:
+        // For step 2, we just need a valid title
+        return !!title.trim();
+      default:
+        return false;
+    }
+  };
+
+  // Navigate to next step
+  const goToNextStep = () => {
+    if (currentStep < TOTAL_STEPS && isCurrentStepValid()) {
+      setCurrentStep(prevStep => prevStep + 1);
+    }
+  };
+
+  // Navigate to previous step
+  const goToPreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prevStep => prevStep - 1);
+    }
+  };
+
+  // Go directly to a step if it's accessible
+  const goToStep = (step: number) => {
+    // Only allow going to a step if all previous steps are valid or if going backwards
+    if (step < currentStep || isCurrentStepValid()) {
+      setCurrentStep(step);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -268,6 +308,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       });
       
       // Reset form
+      setCurrentStep(1);
       setMediaFile(null);
       setMediaPreviewUrl(null);
       setMediaError(null);
@@ -288,8 +329,8 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     }
   };
 
-  // Validate based on post type
-  const isValid = !!title.trim() && selectedAccounts.length > 0 && 
+  // Final validation for form submission
+  const isValid = title.trim() && selectedAccounts.length > 0 && 
                  (postType === 'text' || (postType === 'media' && !!mediaFile && !mediaError));
 
   return (
@@ -297,65 +338,84 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border">
         <h2 className="text-xl font-semibold mb-4">Create New Post</h2>
         
-        {/* Post Type Tabs */}
-        <div className="mb-6">
-          <Tabs defaultValue="media" value={postType} onValueChange={(value) => setPostType(value as PostType)}>
-            <TabsList className="grid w-full grid-cols-2 mb-2">
-              <TabsTrigger value="media" className="flex items-center gap-2">
-                <Image className="h-4 w-4" />
-                Media Post
-              </TabsTrigger>
-              <TabsTrigger value="text" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Text Post
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="media" className="space-y-4 pt-2">
-              <PostFormFields 
-                title={title}
-                setTitle={setTitle}
-                caption={caption}
-                setCaption={setCaption}
-              />
-              
-              <PostMediaUpload 
-                mediaFile={mediaFile}
-                mediaPreviewUrl={mediaPreviewUrl}
-                onFileAccepted={handleMediaFileAccepted}
-                onClearMedia={handleClearMedia}
-                error={mediaError}
-              />
-            </TabsContent>
-            
-            <TabsContent value="text" className="space-y-4 pt-2">
-              <PostFormFields 
-                title={title}
-                setTitle={setTitle}
-                caption={caption}
-                setCaption={setCaption}
-              />
-            </TabsContent>
-          </Tabs>
+        <StepIndicator 
+          currentStep={currentStep} 
+          totalSteps={TOTAL_STEPS} 
+          onStepClick={goToStep} 
+        />
+        
+        {/* Step 1: Post Type and Media Selection */}
+        {currentStep === 1 && (
+          <PostTypeStep
+            postType={postType}
+            setPostType={setPostType}
+            mediaFile={mediaFile}
+            mediaPreviewUrl={mediaPreviewUrl}
+            mediaError={mediaError}
+            onFileAccepted={handleMediaFileAccepted}
+            onClearMedia={handleClearMedia}
+          />
+        )}
+        
+        {/* Step 2: Post Details */}
+        {currentStep === 2 && (
+          <PostDetailsStep
+            title={title}
+            setTitle={setTitle}
+            caption={caption}
+            setCaption={setCaption}
+          />
+        )}
+        
+        {/* Always show account selection and scheduling */}
+        <div className={currentStep === TOTAL_STEPS ? "block" : "hidden"}>
+          <PostScheduler 
+            selectedDate={selectedDate} 
+            onDateChange={setSelectedDate} 
+          />
+          
+          <AccountSelector 
+            platformAccounts={platformAccounts}
+            selectedAccounts={selectedAccounts}
+            onToggleAccount={toggleAccount}
+          />
         </div>
         
-        <PostScheduler 
-          selectedDate={selectedDate} 
-          onDateChange={setSelectedDate} 
-        />
-        
-        <AccountSelector 
-          platformAccounts={platformAccounts}
-          selectedAccounts={selectedAccounts}
-          onToggleAccount={toggleAccount}
-        />
-        
-        <PostSubmitButton 
-          isSubmitting={isSubmitting}
-          isValid={isValid}
-          isScheduled={!!selectedDate}
-          actionText="Post"
-        />
+        {/* Step Navigation */}
+        <div className="flex justify-between mt-6">
+          {currentStep > 1 ? (
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={goToPreviousStep}
+              className="flex items-center"
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Back
+            </Button>
+          ) : (
+            <div></div> // Empty div to maintain layout
+          )}
+          
+          {currentStep < TOTAL_STEPS ? (
+            <Button 
+              type="button"
+              onClick={goToNextStep}
+              disabled={!isCurrentStepValid()}
+              className="flex items-center"
+            >
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          ) : (
+            <PostSubmitButton 
+              isSubmitting={isSubmitting}
+              isValid={isValid}
+              isScheduled={!!selectedDate}
+              actionText="Post"
+            />
+          )}
+        </div>
       </div>
 
       {/* Upload Status Modal */}
