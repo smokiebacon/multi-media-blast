@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -62,6 +61,13 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       )
     );
     onUploadUpdate?.(id, status);
+  };
+
+  const handleStatusModalClose = () => {
+    // Only reset uploads when the modal is closed after successful submission
+    if (uploads.some(u => u.status === 'completed')) {
+      setUploads([]);
+    }
   };
 
   const toggleAccount = (accountId: string) => {
@@ -163,6 +169,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       }
       
       if (uploadPromises.length > 0) {
+        setIsStatusModalOpen(true);
         await Promise.allSettled(uploadPromises);
       }
       
@@ -246,7 +253,6 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
           isScheduled={!!selectedDate}
           actionText="Post"
         />
-
       </div>
 
       {/* Upload Status Modal */}
@@ -254,6 +260,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
         isOpen={isStatusModalOpen}
         onOpenChange={setIsStatusModalOpen}
         uploads={uploads}
+        onClose={handleStatusModalClose}
       />
     </form>
   );

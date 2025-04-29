@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,7 @@ interface EditPostDialogProps {
     content: string | null;
     media_urls: string[] | null;
     scheduled_for: string | null;
-    account_ids?: string[] | null;
+    account_ids: string[] | null;
     user_id: string;
   };
   isOpen: boolean;
@@ -90,6 +89,13 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
         ? prev.filter(id => id !== accountId) 
         : [...prev, accountId]
     );
+  };
+
+  const handleStatusModalClose = () => {
+    // Only reset uploads when the modal is closed after successful submission
+    if (uploads.some(u => u.status === 'completed')) {
+      setUploads([]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -166,7 +172,11 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       });
       
       onPostUpdated();
-      onOpenChange(false);
+      
+      // We don't immediately close the dialog if there are uploads in progress
+      if (uploads.length === 0) {
+        onOpenChange(false);
+      }
       
     } catch (error) {
       console.error('Error updating post:', error);
@@ -240,6 +250,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
         isOpen={isStatusModalOpen}
         onOpenChange={setIsStatusModalOpen}
         uploads={uploads}
+        onClose={handleStatusModalClose}
       />
     </>
   );
