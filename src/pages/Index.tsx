@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -34,12 +34,6 @@ const Index = () => {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    
-    // Show welcome toast
-    toast({
-      title: "Welcome to MultiMediaBlast!",
-      description: "Connect your social accounts and start posting across platforms.",
-    });
     
     // Handle scrolling to section if coming from navigation
     if (location.state && location.state.scrollTo) {
