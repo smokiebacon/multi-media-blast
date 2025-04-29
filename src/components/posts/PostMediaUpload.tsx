@@ -38,7 +38,11 @@ const PostMediaUpload: React.FC<PostMediaUploadProps> = ({
           )}
         </div>
       ) : null}
-      <MediaDropzone onFileAccepted={onFileAccepted} />
+      {/* Hide preview in the MediaDropzone since we're handling it above */}
+      <MediaDropzone 
+        onFileAccepted={onFileAccepted} 
+        hidePreview={!!mediaPreviewUrl} 
+      />
     </div>
   );
 };

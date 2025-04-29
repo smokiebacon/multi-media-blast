@@ -1,13 +1,18 @@
+
 import React, { useCallback, useState } from 'react';
-import { Upload, Image, Film, AlertCircle, X } from 'lucide-react';
+import { Upload, Image, Film, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
 interface MediaDropzoneProps {
   onFileAccepted: (file: File) => void;
+  hidePreview?: boolean;
 }
 
-const MediaDropzone: React.FC<MediaDropzoneProps> = ({ onFileAccepted }) => {
+const MediaDropzone: React.FC<MediaDropzoneProps> = ({ 
+  onFileAccepted,
+  hidePreview = false
+}) => {
   const [isDragActive, setIsDragActive] = useState(false);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
@@ -81,8 +86,10 @@ const MediaDropzone: React.FC<MediaDropzoneProps> = ({ onFileAccepted }) => {
       {!filePreview ? (
         <div 
           className={cn(
-            "dropzone", 
-            isDragActive && "dropzone-active"
+            "border-2 border-dashed rounded-lg p-6 text-center focus:outline-none",
+            isDragActive 
+              ? "border-primary bg-primary/5" 
+              : "border-muted-foreground/25 hover:border-muted-foreground/50"
           )}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
@@ -114,7 +121,7 @@ const MediaDropzone: React.FC<MediaDropzoneProps> = ({ onFileAccepted }) => {
             </p>
           </label>
         </div>
-      ) : (
+      ) : !hidePreview ? (
         <div className="relative rounded-lg overflow-hidden border">
           {fileType === 'image' && (
             <img 
@@ -148,7 +155,7 @@ const MediaDropzone: React.FC<MediaDropzoneProps> = ({ onFileAccepted }) => {
             </span>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
