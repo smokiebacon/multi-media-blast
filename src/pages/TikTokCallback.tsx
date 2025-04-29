@@ -22,6 +22,12 @@ export default function TikTokCallback() {
       const errorMsg = params.get('error');
       const errorDescription = params.get('error_description');
       
+      console.log("TikTok callback received:", {
+        code: code ? `${code.substring(0, 8)}...` : 'null',
+        errorMsg,
+        errorDescription
+      });
+      
       if (errorMsg || errorDescription) {
         const message = errorDescription || errorMsg || 'Unknown error from TikTok';
         console.error("TikTok auth error:", message);
@@ -51,7 +57,7 @@ export default function TikTokCallback() {
 
       try {
         console.log("Received code from TikTok, exchanging for token...");
-        console.log("Code value (first 4 chars):", code.substring(0, 4) + "...");
+        console.log("Code value (first 8 chars):", code.substring(0, 8) + "...");
         
         const { data, error } = await supabase.functions.invoke('tiktok-auth', {
           body: { action: 'callback', code },
@@ -61,7 +67,7 @@ export default function TikTokCallback() {
         
         if (error) {
           console.error("Supabase function error:", error);
-          setDebugInfo({ error });
+          setDebugInfo({ supabaseError: error });
           throw error;
         }
 

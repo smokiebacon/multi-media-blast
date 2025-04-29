@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Check, Plus, X, AlertCircle, Loader } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,14 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
         throw new Error(errorMessage);
       }
 
+      // Add event listener to catch any errors with custom URL schemes
+      const handleError = (e) => {
+        console.warn("Custom URL scheme error prevented:", e);
+        // Continue with the flow - no need to show an error as this is expected behavior in some browsers
+      };
+      
+      window.addEventListener('error', handleError, { once: true });
+
       // Show a toast before redirecting
       toast({
         title: "Redirecting to TikTok",
@@ -67,8 +76,19 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
       
       // Short delay before redirecting to ensure toast is seen
       setTimeout(() => {
-        // Redirect to the OAuth consent screen
-        window.location.href = data.url;
+        try {
+          // Redirect to the OAuth consent screen
+          window.location.href = data.url;
+        } catch (e) {
+          console.error("Redirect error:", e);
+          // If there's an error with the redirect, show a message
+          toast({
+            title: "Redirection Issue",
+            description: "Could not redirect to TikTok. Please try again or use a different browser.",
+            variant: "destructive"
+          });
+          setConnecting(null);
+        }
       }, 1000);
     } catch (error) {
       console.error('Error connecting TikTok:', error);

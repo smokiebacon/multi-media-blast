@@ -43,6 +43,10 @@ serve(async (req) => {
       throw new Error("TikTok credentials not configured. Please set TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET in Supabase Edge Function secrets.");
     }
 
+    // Trim any potential whitespace from credentials
+    const trimmedClientKey = clientKey.trim();
+    const trimmedClientSecret = clientSecret.trim();
+    
     console.log("Processing TikTok auth action:", action);
 
     if (action === 'connect') {
@@ -50,15 +54,16 @@ serve(async (req) => {
       const csrfState = crypto.randomUUID();
       
       // Create the authorization URL with all required parameters
+      // Make sure to use web-specific parameters and avoid mobile-specific parameters
       const authUrl = `https://www.tiktok.com/v2/auth/authorize?` +
-        `client_key=${clientKey}` +
+        `client_key=${encodeURIComponent(trimmedClientKey)}` +
         `&scope=user.info.basic,video.list` +
         `&response_type=code` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
         `&state=${csrfState}`;
 
       console.log("Generated TikTok auth URL:", authUrl);
-
+      
       return new Response(
         JSON.stringify({ url: authUrl }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -71,8 +76,8 @@ serve(async (req) => {
       // Exchange code for access token
       const tokenUrl = 'https://open.tiktok.com/v2/oauth/token/';
       const tokenBody = new URLSearchParams({
-        client_key: clientKey,
-        client_secret: clientSecret,
+        client_key: trimmedClientKey,
+        client_secret: trimmedClientSecret,
         code: code,
         grant_type: 'authorization_code',
         redirect_uri: REDIRECT_URI,
@@ -80,7 +85,7 @@ serve(async (req) => {
       
       console.log("Sending token request to:", tokenUrl);
       console.log("Token request params:", {
-        client_key_first_chars: clientKey.substring(0, 4) + "...",
+        client_key_first_chars: trimmedClientKey.substring(0, 4) + "...",
         grant_type: 'authorization_code',
         redirect_uri: REDIRECT_URI,
       });
