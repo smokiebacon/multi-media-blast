@@ -1,15 +1,15 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Send } from 'lucide-react';
-import MediaDropzone from './MediaDropzone';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { usePlatformAccounts } from '@/hooks/usePlatformAccounts';
 import { uploadFileToStorage, uploadToYouTube } from '@/utils/mediaUpload';
+
+// Import shared components
+import PostFormFields from './posts/PostFormFields';
+import PostMediaUpload from './posts/PostMediaUpload';
+import PostSubmitButton from './posts/PostSubmitButton';
 import AccountSelector from './post/AccountSelector';
 import PostScheduler from './post/PostScheduler';
 
@@ -20,6 +20,7 @@ interface PostFormProps {
 
 const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [title, setTitle] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -32,6 +33,8 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
 
   const handleMediaFileAccepted = (file: File) => {
     setMediaFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setMediaPreviewUrl(previewUrl);
   };
 
   const toggleAccount = (accountId: string) => {
@@ -160,6 +163,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       
       // Reset form
       setMediaFile(null);
+      setMediaPreviewUrl(null);
       setCaption('');
       setTitle('');
       setSelectedDate(undefined);
@@ -176,42 +180,25 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     }
   };
 
+  const isValid = !!title.trim() && !!mediaFile && selectedAccounts.length > 0;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border">
         <h2 className="text-xl font-semibold mb-4">Create New Post</h2>
         
-        <div className="mb-6">
-          <label htmlFor="title" className="block text-sm font-medium mb-2">
-            Title
-          </label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter a title for your post..."
-            className="w-full"
-            required
-          />
-        </div>
+        <PostFormFields 
+          title={title}
+          setTitle={setTitle}
+          caption={caption}
+          setCaption={setCaption}
+        />
         
-        <div className="mb-6">
-          <MediaDropzone onFileAccepted={handleMediaFileAccepted} />
-        </div>
-        
-        <div className="mb-6">
-          <label htmlFor="caption" className="block text-sm font-medium mb-2">
-            Caption
-          </label>
-          <Textarea
-            id="caption"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Write a caption for your post..."
-            className="resize-none"
-            rows={4}
-          />
-        </div>
+        <PostMediaUpload 
+          mediaFile={mediaFile}
+          mediaPreviewUrl={mediaPreviewUrl}
+          onFileAccepted={handleMediaFileAccepted}
+        />
         
         <PostScheduler 
           selectedDate={selectedDate} 
@@ -224,20 +211,12 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
           onToggleAccount={toggleAccount}
         />
         
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isSubmitting || !mediaFile || selectedAccounts.length === 0 || !title.trim()}
-        >
-          {isSubmitting ? (
-            <>Posting...</>
-          ) : (
-            <>
-              <Send className="h-4 w-4 mr-2" />
-              {selectedDate ? 'Schedule Post' : 'Post Now'}
-            </>
-          )}
-        </Button>
+        <PostSubmitButton 
+          isSubmitting={isSubmitting}
+          isValid={isValid}
+          isScheduled={!!selectedDate}
+          actionText="Post"
+        />
       </div>
     </form>
   );

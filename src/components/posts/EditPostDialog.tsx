@@ -2,15 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PlatformAccount } from '@/types/platform-accounts';
+import { uploadFileToStorage } from '@/utils/mediaUpload';
+
+// Import shared components
+import PostFormFields from './PostFormFields';
+import PostMediaUpload from './PostMediaUpload';
 import AccountSelector from '../post/AccountSelector';
 import PostScheduler from '../post/PostScheduler';
-import MediaDropzone from '../MediaDropzone';
-import { uploadFileToStorage } from '@/utils/mediaUpload';
 
 interface EditPostDialogProps {
   post: {
@@ -166,6 +167,8 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
     }
   };
 
+  const isValid = !!title.trim() && !!mediaPreviewUrl && selectedAccounts.length > 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -174,57 +177,18 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium mb-2">
-              Title
-            </label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter a title for your post..."
-              className="w-full"
-              required
-            />
-          </div>
+          <PostFormFields
+            title={title}
+            setTitle={setTitle}
+            caption={content}
+            setCaption={setContent}
+          />
           
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Media
-            </label>
-            {mediaPreviewUrl ? (
-              <div className="relative rounded-lg overflow-hidden border mb-2">
-                {mediaPreviewUrl.includes('image') || mediaPreviewUrl.endsWith('.jpg') || mediaPreviewUrl.endsWith('.png') || mediaPreviewUrl.endsWith('.jpeg') ? (
-                  <img 
-                    src={mediaPreviewUrl} 
-                    alt="Preview" 
-                    className="w-full h-[200px] object-contain bg-black/5"
-                  />
-                ) : (
-                  <video 
-                    src={mediaPreviewUrl} 
-                    controls 
-                    className="w-full h-[200px] object-contain bg-black/5"
-                  />
-                )}
-              </div>
-            ) : null}
-            <MediaDropzone onFileAccepted={handleMediaFileAccepted} />
-          </div>
-          
-          <div>
-            <label htmlFor="caption" className="block text-sm font-medium mb-2">
-              Caption
-            </label>
-            <Textarea
-              id="caption"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write a caption for your post..."
-              className="resize-none"
-              rows={4}
-            />
-          </div>
+          <PostMediaUpload
+            mediaFile={mediaFile}
+            mediaPreviewUrl={mediaPreviewUrl}
+            onFileAccepted={handleMediaFileAccepted}
+          />
           
           <PostScheduler 
             selectedDate={selectedDate} 
@@ -248,7 +212,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting || !title.trim() || !mediaPreviewUrl || selectedAccounts.length === 0}
+              disabled={isSubmitting || !isValid}
             >
               {isSubmitting ? "Updating..." : "Update Post"}
             </Button>
