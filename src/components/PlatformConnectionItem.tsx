@@ -32,7 +32,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
 }) => {
   const { toast } = useToast();
   const [connecting, setConnecting] = useState<string | null>(null);
-  const [disconnectAccount, setDisconnectAccount] = useState<string | null>(null);
+  const [disconnectAccount, setDisconnectAccount] = useState<PlatformAccount | null>(null);
 
   const handleTikTokConnect = async () => {
     try {
@@ -158,13 +158,13 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
     }
   };
 
-  const confirmDisconnect = (accountId: string) => {
-    setDisconnectAccount(accountId);
+  const confirmDisconnect = (account: PlatformAccount) => {
+    setDisconnectAccount(account);
   };
 
   const handleDisconnectConfirmed = () => {
     if (disconnectAccount) {
-      onDisconnect(disconnectAccount);
+      onDisconnect(disconnectAccount.id);
       setDisconnectAccount(null);
     }
   };
@@ -223,7 +223,7 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => confirmDisconnect(account.id)}
+                onClick={() => confirmDisconnect(account)}
                 className="text-xs h-6 px-2 text-destructive hover:bg-destructive/10"
               >
                 <X className="w-3.5 h-3.5" />
@@ -238,9 +238,9 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
       }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disconnect account?</AlertDialogTitle>
+            <AlertDialogTitle>Disconnect {platform.name} account?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will disconnect the account from your profile.
+              This will disconnect <span className="font-medium">{disconnectAccount?.account_name}</span> from your profile.
               You can reconnect it later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
