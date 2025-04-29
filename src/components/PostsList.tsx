@@ -5,6 +5,7 @@ import { Clock, CheckCircle, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
+import { usePlatformAccounts } from '@/hooks/usePlatformAccounts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { platforms } from '@/data/platforms';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type Post = {
   id: string;
@@ -38,6 +40,7 @@ const PostsList: React.FC = () => {
   const pageSize = 10;
   const { user } = useAuth();
   const { toast } = useToast();
+  const { platformAccounts } = usePlatformAccounts(user?.id);
 
   useEffect(() => {
     if (user) {
@@ -110,6 +113,10 @@ const PostsList: React.FC = () => {
     return platforms.find(p => p.id === platformId);
   };
 
+  const getAccountsForPlatform = (platformId: string) => {
+    return platformAccounts.filter(account => account.platform_id === platformId);
+  };
+
   return (
     <div>
       <Card className="mb-6">
@@ -162,13 +169,40 @@ const PostsList: React.FC = () => {
                             <div className="flex flex-wrap gap-1">
                               {post.platforms?.map((platformId) => {
                                 const platform = getPlatformInfo(platformId);
+                                const accounts = getAccountsForPlatform(platformId);
+                                
                                 if (!platform) return null;
                                 
+                                if (accounts.length === 0) {
+                                  return (
+                                    <Badge key={platformId} variant="outline" className="bg-muted">
+                                      <platform.icon className="h-3 w-3 mr-1" />
+                                      {platform.name}
+                                    </Badge>
+                                  );
+                                }
+                                
                                 return (
-                                  <Badge key={platformId} variant="outline" className="bg-muted">
-                                    <platform.icon className="h-3 w-3 mr-1" />
-                                    {platform.name}
-                                  </Badge>
+                                  <TooltipProvider key={platformId}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className="bg-muted cursor-help">
+                                          <platform.icon className="h-3 w-3 mr-1" />
+                                          {platform.name} ({accounts.length})
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="w-auto p-2">
+                                        <div className="text-xs font-medium">
+                                          <p className="mb-1">Accounts:</p>
+                                          <ul className="list-disc pl-4">
+                                            {accounts.map(account => (
+                                              <li key={account.id}>{account.account_name}</li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 );
                               })}
                             </div>
