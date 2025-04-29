@@ -6,6 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PlatformAccount } from '@/types/platform-accounts';
 import { uploadFileToStorage, editYouTubeVideo } from '@/utils/mediaUpload';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Image } from 'lucide-react';
 
 // Import shared components
 import PostFormFields from './PostFormFields';
@@ -30,6 +32,7 @@ interface EditPostDialogProps {
     scheduled_for: string | null;
     account_ids: string[] | null;
     user_id: string;
+    post_type?: 'media' | 'text';
   };
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,6 +44,8 @@ interface EditPostDialogProps {
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
+type PostType = 'media' | 'text';
+
 const EditPostDialog: React.FC<EditPostDialogProps> = ({
   post,
   isOpen,
@@ -48,6 +53,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
   onPostUpdated,
   platformAccounts,
 }) => {
+  const [postType, setPostType] = useState<PostType>('media');
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content || '');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -80,6 +86,8 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       setSelectedDate(post.scheduled_for ? new Date(post.scheduled_for) : undefined);
       setSelectedAccounts(post.account_ids || []);
       setUploads([]);
+      // Determine post type based on media_urls (if present, it's a media post)
+      setPostType(post.post_type || (post.media_urls && post.media_urls.length > 0 ? 'media' : 'text'));
     }
   }, [isOpen, post]);
 
@@ -232,7 +240,8 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       return;
     }
     
-    if (!mediaPreviewUrl) {
+    // Only validate media if post type is 'media'
+    if (postType === 'media' && !mediaPreviewUrl) {
       toast({
         title: "No media selected",
         description: "Please upload an image or video first.",
@@ -250,8 +259,8 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       return;
     }
     
-    // Check if we have a new file and validate its size
-    if (mediaFile) {
+    // Check if we have a new file and validate its size (only for media posts)
+    if (postType === 'media' && mediaFile) {
       const sizeError = validateFileSize(mediaFile);
       if (sizeError) {
         setMediaError(sizeError);
@@ -268,10 +277,10 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
     setUploads([]);
     
     try {
-      // If a new media file was selected, upload it
-      let mediaUrl = post.media_urls && post.media_urls.length > 0 ? post.media_urls[0] : null;
+      // If a new media file was selected, upload it (only for media posts)
+      let mediaUrl = (postType === 'media' && post.media_urls && post.media_urls.length > 0) ? post.media_urls[0] : null;
       
-      if (mediaFile) {
+      if (postType === 'media' && mediaFile) {
         const uploadedUrl = await uploadFileToStorage(mediaFile, post.user_id);
         if (!uploadedUrl) {
           throw new Error("Failed to upload media file");
@@ -280,7 +289,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       }
 
       // Try to update YouTube videos if there are any YouTube accounts selected
-      if (selectedAccounts.some(accountId => {
+      if (postType === 'media' && selectedAccounts.some(accountId => {
         const account = platformAccounts.find(acc => acc.id === accountId);
         return account && account.platform_id === 'youtube';
       })) {
@@ -302,7 +311,8 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       const { error } = await supabase.from('posts').update({
         title: title,
         content: content,
-        media_urls: mediaUrl ? [mediaUrl] : post.media_urls,
+        media_urls: postType === 'media' && mediaUrl ? [mediaUrl] : [],
+        post_type: postType,
         platforms: platforms,
         account_ids: selectedAccounts,
         status: status,
@@ -336,7 +346,9 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
     }
   };
 
-  const isValid = !!title.trim() && !!mediaPreviewUrl && selectedAccounts.length > 0 && !mediaError;
+  // Validate based on post type
+  const isValid = !!title.trim() && selectedAccounts.length > 0 && 
+                 (postType === 'text' || (postType === 'media' && !!mediaPreviewUrl && !mediaError));
 
   return (
     <>
@@ -347,20 +359,50 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="space-y-6 py-4">
-            <PostFormFields
-              title={title}
-              setTitle={setTitle}
-              caption={content}
-              setCaption={setContent}
-            />
-            
-            <PostMediaUpload
-              mediaFile={mediaFile}
-              mediaPreviewUrl={mediaPreviewUrl}
-              onFileAccepted={handleMediaFileAccepted}
-              onClearMedia={handleClearMedia}
-              error={mediaError}
-            />
+            {/* Post Type Tabs */}
+            <Tabs 
+              defaultValue={postType} 
+              value={postType} 
+              onValueChange={(value) => setPostType(value as PostType)}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2 mb-2">
+                <TabsTrigger value="media" className="flex items-center gap-2">
+                  <Image className="h-4 w-4" />
+                  Media Post
+                </TabsTrigger>
+                <TabsTrigger value="text" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Text Post
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="media" className="space-y-4 pt-2">
+                <PostFormFields
+                  title={title}
+                  setTitle={setTitle}
+                  caption={content}
+                  setCaption={setContent}
+                />
+                
+                <PostMediaUpload
+                  mediaFile={mediaFile}
+                  mediaPreviewUrl={mediaPreviewUrl}
+                  onFileAccepted={handleMediaFileAccepted}
+                  onClearMedia={handleClearMedia}
+                  error={mediaError}
+                />
+              </TabsContent>
+              
+              <TabsContent value="text" className="space-y-4 pt-2">
+                <PostFormFields
+                  title={title}
+                  setTitle={setTitle}
+                  caption={content}
+                  setCaption={setContent}
+                />
+              </TabsContent>
+            </Tabs>
             
             <PostScheduler 
               selectedDate={selectedDate} 

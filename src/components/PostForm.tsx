@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { usePlatformAccounts } from '@/hooks/usePlatformAccounts';
 import { uploadFileToStorage, uploadToYouTube } from '@/utils/mediaUpload';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Image } from 'lucide-react';
 
 // Import shared components
 import PostFormFields from './posts/PostFormFields';
@@ -30,7 +32,10 @@ interface PostFormProps {
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
+type PostType = 'media' | 'text';
+
 const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) => {
+  const [postType, setPostType] = useState<PostType>('media');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -140,7 +145,8 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       return;
     }
     
-    if (!mediaFile) {
+    // Validate media only if post type is media
+    if (postType === 'media' && !mediaFile) {
       toast({
         title: "No media selected",
         description: "Please upload an image or video first.",
@@ -159,15 +165,17 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     }
     
     // Double check file size before submission
-    const sizeError = validateFileSize(mediaFile);
-    if (sizeError) {
-      setMediaError(sizeError);
-      toast({
-        title: "File too large",
-        description: sizeError,
-        variant: "destructive",
-      });
-      return;
+    if (postType === 'media' && mediaFile) {
+      const sizeError = validateFileSize(mediaFile);
+      if (sizeError) {
+        setMediaError(sizeError);
+        toast({
+          title: "File too large",
+          description: sizeError,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     setIsSubmitting(true);
@@ -175,9 +183,14 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     setUploads([]);
     
     try {
-      const mediaUrl = await uploadFileToStorage(mediaFile, user.id);
-      if (!mediaUrl) {
-        throw new Error("Failed to upload media file");
+      let mediaUrl = null;
+      
+      // Handle media uploads if it's a media post
+      if (postType === 'media' && mediaFile) {
+        mediaUrl = await uploadFileToStorage(mediaFile, user.id);
+        if (!mediaUrl) {
+          throw new Error("Failed to upload media file");
+        }
       }
       
       const selectedPlatformAccounts = platformAccounts.filter(account => 
@@ -187,36 +200,39 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       const uploadPromises = [];
       const uploadResults = [];
       
-      for (const account of selectedPlatformAccounts) {
-        if (account.platform_id === 'youtube') {
-          const isVideo = mediaFile.type.startsWith('video/');
-          if (isVideo) {
-            uploadPromises.push(
-              uploadToYouTube(
-                account.id, 
-                mediaUrl, 
-                title, 
-                caption, 
-                platformAccounts,
-                handleUploadStart,
-                handleUploadUpdate
-              ).then(result => {
-                uploadResults.push({
-                  platform: 'youtube',
-                  account: account.account_name,
-                  success: result.success,
-                  url: result.videoUrl || null,
-                  error: result.error || null
-                });
-                return result;
-              })
-            );
-          } else {
-            toast({
-              title: "YouTube upload skipped",
-              description: `YouTube only accepts video files. Your image was not uploaded to ${account.account_name}.`,
-              variant: "default"
-            });
+      // Only attempt YouTube uploads for media posts with videos
+      if (postType === 'media' && mediaFile && mediaUrl) {
+        for (const account of selectedPlatformAccounts) {
+          if (account.platform_id === 'youtube') {
+            const isVideo = mediaFile.type.startsWith('video/');
+            if (isVideo) {
+              uploadPromises.push(
+                uploadToYouTube(
+                  account.id, 
+                  mediaUrl, 
+                  title, 
+                  caption, 
+                  platformAccounts,
+                  handleUploadStart,
+                  handleUploadUpdate
+                ).then(result => {
+                  uploadResults.push({
+                    platform: 'youtube',
+                    account: account.account_name,
+                    success: result.success,
+                    url: result.videoUrl || null,
+                    error: result.error || null
+                  });
+                  return result;
+                })
+              );
+            } else {
+              toast({
+                title: "YouTube upload skipped",
+                description: `YouTube only accepts video files. Your image was not uploaded to ${account.account_name}.`,
+                variant: "default"
+              });
+            }
           }
         }
       }
@@ -232,7 +248,8 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
         user_id: user.id,
         title: title,
         content: caption,
-        media_urls: [mediaUrl],
+        media_urls: mediaUrl ? [mediaUrl] : [],
+        post_type: postType,
         platforms: [...new Set(selectedPlatformAccounts.map(account => account.platform_id))],
         status: status,
         scheduled_for: selectedDate ? selectedDate.toISOString() : null,
@@ -246,8 +263,8 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       
       toast({
         title: selectedDate ? "Post scheduled!" : "Post published!",
-        description: `${successfulUploads} successful uploads, ${failedUploads} failed uploads.`,
-        variant: successfulUploads > 0 ? "default" : "destructive",
+        description: `${successfulUploads > 0 ? `${successfulUploads} successful uploads, ${failedUploads} failed uploads.` : "Post created successfully."}`,
+        variant: successfulUploads > 0 || postType === 'text' ? "default" : "destructive",
       });
       
       // Reset form
@@ -258,6 +275,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       setTitle('');
       setSelectedDate(undefined);
       setSelectedAccounts([]);
+      setPostType('media'); // Reset to default tab
     } catch (error) {
       console.error('Error posting:', error);
       toast({
@@ -270,27 +288,56 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     }
   };
 
-  const isValid = !!title.trim() && !!mediaFile && selectedAccounts.length > 0 && !mediaError;
+  // Validate based on post type
+  const isValid = !!title.trim() && selectedAccounts.length > 0 && 
+                 (postType === 'text' || (postType === 'media' && !!mediaFile && !mediaError));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border">
         <h2 className="text-xl font-semibold mb-4">Create New Post</h2>
         
-        <PostFormFields 
-          title={title}
-          setTitle={setTitle}
-          caption={caption}
-          setCaption={setCaption}
-        />
-        
-        <PostMediaUpload 
-          mediaFile={mediaFile}
-          mediaPreviewUrl={mediaPreviewUrl}
-          onFileAccepted={handleMediaFileAccepted}
-          onClearMedia={handleClearMedia}
-          error={mediaError}
-        />
+        {/* Post Type Tabs */}
+        <div className="mb-6">
+          <Tabs defaultValue="media" value={postType} onValueChange={(value) => setPostType(value as PostType)}>
+            <TabsList className="grid w-full grid-cols-2 mb-2">
+              <TabsTrigger value="media" className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                Media Post
+              </TabsTrigger>
+              <TabsTrigger value="text" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Text Post
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="media" className="space-y-4 pt-2">
+              <PostFormFields 
+                title={title}
+                setTitle={setTitle}
+                caption={caption}
+                setCaption={setCaption}
+              />
+              
+              <PostMediaUpload 
+                mediaFile={mediaFile}
+                mediaPreviewUrl={mediaPreviewUrl}
+                onFileAccepted={handleMediaFileAccepted}
+                onClearMedia={handleClearMedia}
+                error={mediaError}
+              />
+            </TabsContent>
+            
+            <TabsContent value="text" className="space-y-4 pt-2">
+              <PostFormFields 
+                title={title}
+                setTitle={setTitle}
+                caption={caption}
+                setCaption={setCaption}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
         
         <PostScheduler 
           selectedDate={selectedDate} 
