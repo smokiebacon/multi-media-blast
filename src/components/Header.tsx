@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { MoonIcon, SunIcon, UserRound } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import {
   NavigationMenu,
@@ -22,6 +22,8 @@ type HeaderProps = {
 const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isOnDashboard = location.pathname === '/dashboard';
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -106,12 +108,14 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleDarkMode }) => {
       <div className="flex items-center gap-4">
         {user ? (
           <>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/dashboard')}
-            >
-              Dashboard
-            </Button>
+            {!isOnDashboard && (
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard')}
+              >
+                Dashboard
+              </Button>
+            )}
             <Button
               variant="ghost"
               onClick={() => logout()}
