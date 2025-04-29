@@ -2,25 +2,38 @@
 import React from 'react';
 import MediaDropzone from '../MediaDropzone';
 import { X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface PostMediaUploadProps {
   mediaFile: File | null;
   mediaPreviewUrl: string | null;
   onFileAccepted: (file: File) => void;
-  onClearMedia?: () => void; // Prop for clearing media
+  onClearMedia?: () => void;
+  error?: string | null; // New prop for error display
 }
 
 const PostMediaUpload: React.FC<PostMediaUploadProps> = ({
   mediaFile,
   mediaPreviewUrl,
   onFileAccepted,
-  onClearMedia
+  onClearMedia,
+  error
 }) => {
   return (
     <div className="mb-6">
       <label className="block text-sm font-medium mb-2">
         Media
       </label>
+      
+      {/* Error message alert */}
+      {error && (
+        <Alert variant="destructive" className="mb-3">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       {mediaPreviewUrl ? (
         <div className="relative rounded-lg overflow-hidden border mb-2">
           {mediaPreviewUrl.includes('image') || 

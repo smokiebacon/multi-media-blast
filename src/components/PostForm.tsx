@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,9 +26,14 @@ interface PostFormProps {
   onUploadUpdate?: (id: string, status: string) => void;
 }
 
+// Set maximum file size constants (in bytes)
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
 const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [title, setTitle] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -42,7 +48,32 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
   const { user } = useAuth();
   const { platformAccounts } = usePlatformAccounts(user?.id);
 
+  const validateFileSize = (file: File): string | null => {
+    const isVideo = file.type.startsWith('video/');
+    
+    if (isVideo && file.size > MAX_VIDEO_SIZE) {
+      const sizeMB = Math.round(MAX_VIDEO_SIZE / (1024 * 1024));
+      return `Video file is too large. Maximum size is ${sizeMB}MB.`;
+    } else if (!isVideo && file.size > MAX_IMAGE_SIZE) {
+      const sizeMB = Math.round(MAX_IMAGE_SIZE / (1024 * 1024));
+      return `Image file is too large. Maximum size is ${sizeMB}MB.`;
+    }
+    
+    return null;
+  };
+
   const handleMediaFileAccepted = (file: File) => {
+    // Check file size
+    const error = validateFileSize(file);
+    
+    if (error) {
+      setMediaError(error);
+      // Don't set the file if it's too large
+      return;
+    }
+    
+    // Clear any previous errors
+    setMediaError(null);
     setMediaFile(file);
     const previewUrl = URL.createObjectURL(file);
     setMediaPreviewUrl(previewUrl);
@@ -55,6 +86,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     }
     setMediaFile(null);
     setMediaPreviewUrl(null);
+    setMediaError(null);
   };
 
   const handleUploadStart = (upload: {id: string, platform: string, status: string}) => {
@@ -121,6 +153,18 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       toast({
         title: "No accounts selected",
         description: "Please select at least one account to post to.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Double check file size before submission
+    const sizeError = validateFileSize(mediaFile);
+    if (sizeError) {
+      setMediaError(sizeError);
+      toast({
+        title: "File too large",
+        description: sizeError,
         variant: "destructive",
       });
       return;
@@ -209,6 +253,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
       // Reset form
       setMediaFile(null);
       setMediaPreviewUrl(null);
+      setMediaError(null);
       setCaption('');
       setTitle('');
       setSelectedDate(undefined);
@@ -225,7 +270,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
     }
   };
 
-  const isValid = !!title.trim() && !!mediaFile && selectedAccounts.length > 0;
+  const isValid = !!title.trim() && !!mediaFile && selectedAccounts.length > 0 && !mediaError;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -244,6 +289,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
           mediaPreviewUrl={mediaPreviewUrl}
           onFileAccepted={handleMediaFileAccepted}
           onClearMedia={handleClearMedia}
+          error={mediaError}
         />
         
         <PostScheduler 

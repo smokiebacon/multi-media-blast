@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,10 @@ interface EditPostDialogProps {
   platformAccounts: PlatformAccount[];
 }
 
+// Set maximum file size constants (in bytes)
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
 const EditPostDialog: React.FC<EditPostDialogProps> = ({
   post,
   isOpen,
@@ -49,6 +54,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(
     post.media_urls && post.media_urls.length > 0 ? post.media_urls[0] : null
   );
+  const [mediaError, setMediaError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     post.scheduled_for ? new Date(post.scheduled_for) : undefined
   );
@@ -70,13 +76,39 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       setContent(post.content || '');
       setMediaPreviewUrl(post.media_urls && post.media_urls.length > 0 ? post.media_urls[0] : null);
       setMediaFile(null);
+      setMediaError(null);
       setSelectedDate(post.scheduled_for ? new Date(post.scheduled_for) : undefined);
       setSelectedAccounts(post.account_ids || []);
       setUploads([]);
     }
   }, [isOpen, post]);
 
+  const validateFileSize = (file: File): string | null => {
+    const isVideo = file.type.startsWith('video/');
+    
+    if (isVideo && file.size > MAX_VIDEO_SIZE) {
+      const sizeMB = Math.round(MAX_VIDEO_SIZE / (1024 * 1024));
+      return `Video file is too large. Maximum size is ${sizeMB}MB.`;
+    } else if (!isVideo && file.size > MAX_IMAGE_SIZE) {
+      const sizeMB = Math.round(MAX_IMAGE_SIZE / (1024 * 1024));
+      return `Image file is too large. Maximum size is ${sizeMB}MB.`;
+    }
+    
+    return null;
+  };
+
   const handleMediaFileAccepted = (file: File) => {
+    // Check file size
+    const error = validateFileSize(file);
+    
+    if (error) {
+      setMediaError(error);
+      // Don't set the file if it's too large
+      return;
+    }
+    
+    // Clear any previous errors
+    setMediaError(null);
     setMediaFile(file);
     // Create a preview URL for the new file
     const previewUrl = URL.createObjectURL(file);
@@ -90,6 +122,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
     }
     setMediaFile(null);
     setMediaPreviewUrl(null);
+    setMediaError(null);
   };
 
   const toggleAccount = (accountId: string) => {
@@ -217,6 +250,20 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
       return;
     }
     
+    // Check if we have a new file and validate its size
+    if (mediaFile) {
+      const sizeError = validateFileSize(mediaFile);
+      if (sizeError) {
+        setMediaError(sizeError);
+        toast({
+          title: "File too large",
+          description: sizeError,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     setIsSubmitting(true);
     setUploads([]);
     
@@ -289,7 +336,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
     }
   };
 
-  const isValid = !!title.trim() && !!mediaPreviewUrl && selectedAccounts.length > 0;
+  const isValid = !!title.trim() && !!mediaPreviewUrl && selectedAccounts.length > 0 && !mediaError;
 
   return (
     <>
@@ -312,6 +359,7 @@ const EditPostDialog: React.FC<EditPostDialogProps> = ({
               mediaPreviewUrl={mediaPreviewUrl}
               onFileAccepted={handleMediaFileAccepted}
               onClearMedia={handleClearMedia}
+              error={mediaError}
             />
             
             <PostScheduler 
