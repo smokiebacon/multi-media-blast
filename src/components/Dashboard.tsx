@@ -26,12 +26,14 @@ import {
   SidebarMenuButton,
   SidebarFooter
 } from "@/components/ui/sidebar";
+import { useSubscription } from '@/hooks/useSubscription';
 
 const Dashboard: React.FC = () => {
   const [activeUploads, setActiveUploads] = useState<Array<{id: string, platform: string, status: string}>>([]);
   const [activeTab, setActiveTab] = useState<string>("create");
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { t } = useTranslation();
+  const { subscribed, subscriptionTier } = useSubscription();
   
   const addUpload = (upload: {id: string, platform: string, status: string}) => {
     setActiveUploads(prev => [...prev, upload]);
@@ -54,6 +56,18 @@ const Dashboard: React.FC = () => {
                 <span className="text-white font-bold text-lg">M</span>
               </div>
             </div>
+            
+            {subscribed && (
+              <div className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium mb-4">
+                {subscriptionTier || 'Pro'} Plan
+              </div>
+            )}
+            
+            {user && user.email && (
+              <div className="mb-6 text-center px-2">
+                <p className="text-sm font-medium truncate max-w-[180px]" title={user.email}>{user.email}</p>
+              </div>
+            )}
             
             <SidebarMenu className="space-y-4 w-full px-2">
               <SidebarMenuItem>
