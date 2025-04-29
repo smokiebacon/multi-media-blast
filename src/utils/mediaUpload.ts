@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -6,16 +5,8 @@ export const uploadFileToStorage = async (file: File, userId: string) => {
   if (!userId) return null;
   
   const fileExt = file.name.split('.').pop();
-  const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+  const fileName = `${uuidv4()}.${fileExt}`;
   const filePath = `${userId}/${fileName}`;
-  
-  const { data: bucketExists } = await supabase.storage.getBucket('media');
-  if (!bucketExists) {
-    await supabase.storage.createBucket('media', {
-      public: false,
-      fileSizeLimit: 1073741824,
-    });
-  }
   
   const { error: uploadError, data } = await supabase.storage
     .from('media')
