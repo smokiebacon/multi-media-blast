@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { CalendarIcon, Send, Clock } from 'lucide-react';
 import MediaDropzone from './MediaDropzone';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { PlatformAccount } from '@/types/platform-accounts';
 import { platforms as allPlatforms } from '@/data/platforms';
@@ -232,7 +232,7 @@ const PostForm: React.FC<PostFormProps> = ({ onUploadStart, onUploadUpdate }) =>
             toast({
               title: "YouTube upload skipped",
               description: `YouTube only accepts video files. Your image was not uploaded to ${account.account_name}.`,
-              variant: "warning"
+              variant: "default"
             });
           }
         }
