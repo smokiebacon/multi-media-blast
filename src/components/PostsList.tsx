@@ -1,23 +1,23 @@
 
 import React, { useEffect, useState } from 'react';
-import { format } from 'date-fns';
-import { Clock, CheckCircle, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { usePlatformAccounts } from '@/hooks/usePlatformAccounts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { platforms } from '@/data/platforms';
+
+// Import new components
+import PostItem from './posts/PostItem';
+import PostsPagination from './posts/PostsPagination';
+import PostsLoading from './posts/PostsLoading';
+import EmptyPosts from './posts/EmptyPosts';
 
 type Post = {
   id: string;
@@ -85,46 +85,8 @@ const PostsList: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published':
-        return 'bg-green-500 hover:bg-green-600';
-      case 'scheduled':
-        return 'bg-blue-500 hover:bg-blue-600';
-      case 'draft':
-      default:
-        return 'bg-gray-500 hover:bg-gray-600';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'published':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'scheduled':
-        return <Calendar className="h-4 w-4" />;
-      case 'draft':
-      default:
-        return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const getPlatformInfo = (platformId: string) => {
-    return platforms.find(p => p.id === platformId);
-  };
-
-  // Modified to only return accounts that are in the post's metadata
-  const getAccountsForPost = (post: Post, platformId: string) => {
-    // If post has account_ids field, filter accounts by those IDs
-    if (post.account_ids && post.account_ids.length > 0) {
-      return platformAccounts.filter(account => 
-        account.platform_id === platformId && 
-        post.account_ids?.includes(account.id)
-      );
-    }
-    
-    // Fallback: show all accounts for this platform (should not happen with updated data)
-    return platformAccounts.filter(account => account.platform_id === platformId);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -135,14 +97,9 @@ const PostsList: React.FC = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-2 text-sm text-muted-foreground">Loading posts...</p>
-            </div>
+            <PostsLoading />
           ) : posts.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-muted-foreground">You haven't created any posts yet.</p>
-            </div>
+            <EmptyPosts />
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -156,117 +113,22 @@ const PostsList: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {posts.map((post) => {
-                      const date = post.published_at || post.scheduled_for || post.created_at;
-                      const dateLabel = post.published_at 
-                        ? "Published" 
-                        : post.scheduled_for 
-                          ? "Scheduled" 
-                          : "Created";
-                      
-                      return (
-                        <TableRow key={post.id}>
-                          <TableCell className="font-medium">{post.title}</TableCell>
-                          <TableCell>
-                            <Badge className={`${getStatusColor(post.status)} text-white`}>
-                              <span className="flex items-center gap-1">
-                                {getStatusIcon(post.status)}
-                                {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-                              </span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-2">
-                              {post.platforms?.map((platformId) => {
-                                const platform = getPlatformInfo(platformId);
-                                const accounts = getAccountsForPost(post, platformId);
-                                
-                                if (!platform) return null;
-                                
-                                return (
-                                  <div key={platformId} className="flex flex-col">
-                                    <Badge variant="outline" className="bg-muted mb-1">
-                                      <platform.icon className="h-3 w-3 mr-1" />
-                                      {platform.name}
-                                    </Badge>
-                                    {accounts.length > 0 ? (
-                                      <div className="text-xs text-muted-foreground pl-2">
-                                        {accounts.map((account, idx) => (
-                                          <div key={account.id}>
-                                            {account.account_name}
-                                            {idx < accounts.length - 1 ? ", " : ""}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <div className="text-xs text-muted-foreground pl-2">No accounts</div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {dateLabel}: {format(new Date(date), 'MMM d, yyyy')}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {posts.map((post) => (
+                      <PostItem 
+                        key={post.id} 
+                        post={post} 
+                        platformAccounts={platformAccounts}
+                      />
+                    ))}
                   </TableBody>
                 </Table>
               </div>
               
-              {totalPages > 1 && (
-                <Pagination className="mt-4">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        className="cursor-pointer"
-                        aria-disabled={currentPage === 1}
-                        tabIndex={currentPage === 1 ? -1 : 0}
-                      />
-                    </PaginationItem>
-                    
-                    {Array.from({length: Math.min(5, totalPages)}, (_, i) => {
-                      // Show pages around current page
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      
-                      return (
-                        <PaginationItem key={pageNum}>
-                          <PaginationLink 
-                            isActive={pageNum === currentPage}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className="cursor-pointer"
-                          >
-                            {pageNum}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-                    
-                    <PaginationItem>
-                      <PaginationNext 
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        className="cursor-pointer"
-                        aria-disabled={currentPage === totalPages}
-                        tabIndex={currentPage === totalPages ? -1 : 0}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              )}
+              <PostsPagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
             </>
           )}
         </CardContent>
