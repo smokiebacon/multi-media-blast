@@ -5,6 +5,8 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import StatusBadge from './StatusBadge';
 import PlatformAccountsDisplay from './PlatformAccountsDisplay';
 import { PlatformAccount } from '@/types/platform-accounts';
+import { Button } from '@/components/ui/button';
+import { Edit } from 'lucide-react';
 
 type Post = {
   id: string;
@@ -17,14 +19,16 @@ type Post = {
   platforms: string[] | null;
   media_urls: string[] | null;
   account_ids?: string[] | null;
+  user_id: string;
 };
 
 type PostItemProps = {
   post: Post;
   platformAccounts: PlatformAccount[];
+  onEditPost: (post: Post) => void;
 };
 
-const PostItem = ({ post, platformAccounts }: PostItemProps) => {
+const PostItem = ({ post, platformAccounts, onEditPost }: PostItemProps) => {
   const date = post.published_at || post.scheduled_for || post.created_at;
   const dateLabel = post.published_at 
     ? "Published" 
@@ -64,6 +68,17 @@ const PostItem = ({ post, platformAccounts }: PostItemProps) => {
         <span className="text-sm text-muted-foreground">
           {dateLabel}: {format(new Date(date), 'MMM d, yyyy')}
         </span>
+      </TableCell>
+      <TableCell>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => onEditPost(post)}
+          className="h-8 w-8 p-0"
+        >
+          <Edit className="h-4 w-4" />
+          <span className="sr-only">Edit post</span>
+        </Button>
       </TableCell>
     </TableRow>
   );

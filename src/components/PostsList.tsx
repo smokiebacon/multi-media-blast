@@ -13,11 +13,12 @@ import {
   TableRow
 } from '@/components/ui/table';
 
-// Import new components
+// Import components
 import PostItem from './posts/PostItem';
 import PostsPagination from './posts/PostsPagination';
 import PostsLoading from './posts/PostsLoading';
 import EmptyPosts from './posts/EmptyPosts';
+import EditPostDialog from './posts/EditPostDialog';
 
 type Post = {
   id: string;
@@ -30,6 +31,7 @@ type Post = {
   platforms: string[] | null;
   media_urls: string[] | null;
   account_ids?: string[] | null;
+  user_id: string;
 };
 
 const PostsList: React.FC = () => {
@@ -37,6 +39,9 @@ const PostsList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
   const pageSize = 10;
   const { user } = useAuth();
   const { toast } = useToast();
@@ -88,6 +93,15 @@ const PostsList: React.FC = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
+  
+  const handleEditPost = (post: Post) => {
+    setEditingPost(post);
+    setIsEditDialogOpen(true);
+  };
+  
+  const handlePostUpdated = () => {
+    fetchPosts();
+  };
 
   return (
     <div>
@@ -110,6 +124,7 @@ const PostsList: React.FC = () => {
                       <TableHead>Status</TableHead>
                       <TableHead>Platforms</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead className="w-[50px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -118,6 +133,7 @@ const PostsList: React.FC = () => {
                         key={post.id} 
                         post={post} 
                         platformAccounts={platformAccounts}
+                        onEditPost={handleEditPost}
                       />
                     ))}
                   </TableBody>
@@ -133,6 +149,16 @@ const PostsList: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      
+      {editingPost && (
+        <EditPostDialog 
+          post={editingPost}
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onPostUpdated={handlePostUpdated}
+          platformAccounts={platformAccounts}
+        />
+      )}
     </div>
   );
 };
