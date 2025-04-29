@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { 
   FileText, 
   Upload, 
-  Share2, 
-  Activity,
+  Share2,
   LogOut,
   CreditCard,
   Check
@@ -14,7 +13,6 @@ import { useAuth } from '@/hooks/useAuth';
 import PostForm from './PostForm';
 import PlatformsManager from './PlatformsManager';
 import PostsList from './PostsList';
-import UploadStatus from './UploadStatus';
 import SubscriptionManager from './SubscriptionManager';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import {
@@ -105,17 +103,6 @@ const Dashboard: React.FC = () => {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton 
-                  isActive={activeTab === "status"}
-                  onClick={() => setActiveTab("status")}
-                  tooltip="Upload Status"
-                  className="w-full flex justify-center items-center"
-                >
-                  <Activity className="h-5 w-5" />
-                  <span className="ml-3 font-medium">{t('sidebar.uploadStatus')}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
                   isActive={activeTab === "subscription"}
                   onClick={() => setActiveTab("subscription")}
                   tooltip="Subscription"
@@ -157,10 +144,6 @@ const Dashboard: React.FC = () => {
             
             {activeTab === "platforms" && (
               <PlatformsManager />
-            )}
-            
-            {activeTab === "status" && (
-              <UploadStatus uploads={activeUploads} />
             )}
 
             {activeTab === "subscription" && (
