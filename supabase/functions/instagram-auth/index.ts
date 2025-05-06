@@ -11,7 +11,7 @@ const INSTAGRAM_APP_ID = Deno.env.get('INSTAGRAM_APP_ID') || '';
 const INSTAGRAM_APP_SECRET = Deno.env.get('INSTAGRAM_APP_SECRET') || '';
 
 // Get base URL from environment variable or use a fallback
-const PUBLIC_URL = Deno.env.get('PUBLIC_URL') || 'http://localhost:3000';
+const PUBLIC_URL = Deno.env.get('PUBLIC_URL') || 'http://localhost:8080';
 const REDIRECT_URI = `${PUBLIC_URL}/instagram-callback`;
 
 console.log("Function initialized with redirect URI:", REDIRECT_URI);

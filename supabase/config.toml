@@ -11,3 +11,14 @@ verify_jwt = true
 [functions.customer-portal]
 verify_jwt = true
 
+
+[functions.facebook-auth]
+enabled = true
+verify_jwt = true
+import_map = "./functions/facebook-auth/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/facebook-auth/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/facebook-auth/*.html" ]

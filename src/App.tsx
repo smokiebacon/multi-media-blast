@@ -8,6 +8,7 @@ import TikTokCallback from '@/pages/TikTokCallback';
 import YouTubeCallback from '@/pages/YouTubeCallback';
 import InstagramCallback from '@/pages/InstagramCallback';
 import './App.css';
+import FacebookCallback from './pages/FacebookCallback';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
       <Route path="/tiktok-callback" element={<TikTokCallback />} />
       <Route path="/youtube-callback" element={<YouTubeCallback />} />
       <Route path="/instagram-callback" element={<InstagramCallback />} />
+      <Route path="/facebook-callback" element={<FacebookCallback />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

@@ -34,7 +34,42 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
   const { toast } = useToast();
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnectAccount, setDisconnectAccount] = useState<PlatformAccount | null>(null);
+  
+  const handleFacebookConnect = async () => {
+    try {
+      setConnecting('facebook');
+      toast({
+        title: "Connecting to Facebook",
+        description: "Please wait while we connect to your Facebook account...",
+      });
 
+      const { data, error } = await supabase.functions.invoke('facebook-auth', {
+        body: { action: 'connect' },
+      });
+
+      if (error) {
+        console.error('Facebook connect error:', error);
+        throw new Error(error.message || "Error connecting to Facebook");
+      }
+
+      console.log("Facebook connect response:", data);
+      
+      if (!data.url) {
+        throw new Error(data.error || "No auth URL returned from function");
+      }
+
+      // Redirect to the OAuth consent screen
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Error connecting Facebook:', error);
+      toast({
+        title: "Connection Failed",
+        description: `Could not connect to Facebook: ${error.message || 'Unknown error'}. Please make sure the FACEBOOK_APP_ID and FACEBOOK_APP_SECRET are configured in Supabase Edge Function secrets.`,
+        variant: "destructive"
+      });
+      setConnecting(null);
+    }
+  };
   const handleTikTokConnect = async () => {
     try {
       setConnecting('tiktok');
@@ -200,7 +235,10 @@ const PlatformConnectionItem: React.FC<PlatformConnectionItemProps> = ({
       handleYouTubeConnect();
     } else if (platform.id === 'instagram') {
       handleInstagramConnect();
-    } else {
+    } else if (platform.id === 'facebook') {
+      handleFacebookConnect();
+    }
+    else {
       onConnect(platform.id);
     }
   };

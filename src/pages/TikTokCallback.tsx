@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export default function TikTokCallback() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(null);
@@ -95,7 +95,7 @@ export default function TikTokCallback() {
               account_name: data.account_name,
               account_identifier: data.account_identifier,
               access_token: data.access_token,
-              refresh_token: data.refresh_token,
+              refresh_token: data?.refresh_token,
             });
 
           if (dbError) {
@@ -143,9 +143,10 @@ export default function TikTokCallback() {
         setTimeout(() => navigate('/dashboard'), 1500);
       }
     };
-
+    if(!loading) {
     handleCallback();
-  }, [navigate, toast, user]);
+    }
+  }, [loading]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
