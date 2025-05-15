@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const corsHeaders = {
@@ -6,133 +5,154 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Get environment variables
 const INSTAGRAM_APP_ID = Deno.env.get('INSTAGRAM_APP_ID') || '';
 const INSTAGRAM_APP_SECRET = Deno.env.get('INSTAGRAM_APP_SECRET') || '';
-
-// Get base URL from environment variable or use a fallback
 const PUBLIC_URL = Deno.env.get('PUBLIC_URL') || 'http://localhost:8080';
 const REDIRECT_URI = `${PUBLIC_URL}/instagram-callback`;
+const makeId = (length: number) => {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < length; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+};
 
-console.log("Function initialized with redirect URI:", REDIRECT_URI);
-console.log("Instagram credentials configured - App ID exists:", !!INSTAGRAM_APP_ID);
-console.log("Instagram credentials configured - App Secret exists:", !!INSTAGRAM_APP_SECRET);
+// Store state temporarily (in production, use a database or session)
+const stateStore = new Map<string, string>();
+
+// const generateAuthUrl = () => {
+//   const scopes = ['instagram_basic', 'instagram_content_publish', 'instagram_manage_comments'];
+//   const state = makeId(16);
+//   const url = `https://www.instagram.com/oauth/authorize?client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scopes.join(',')}&response_type=code&state=${state}`;
+//   return { url, state };
+// };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  console.log('saad')
 
   try {
-    const { action, code } = await req.json();
-    console.log(`Processing Instagram auth action: ${action}`);
+    const body = (await req?.json())
+    const url = new URL(req.url);
+    const action = url.searchParams.get('action') || body?.action;
+    const code = body?.code;
 
     if (action === 'connect') {
-      // Validate that secrets are present
       if (!INSTAGRAM_APP_ID) {
-        console.error('Instagram App ID is missing');
-        return new Response(
-          JSON.stringify({ error: 'Instagram App ID is not configured. Please set INSTAGRAM_APP_ID in Supabase Edge Function secrets.' }), 
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-
-      // OAuth 2.0 authorization endpoint
-      const scope = 'user_profile,user_media';
-      const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=code`;
-      
-      console.log("Generated Instagram auth URL:", authUrl);
-      
-      return new Response(JSON.stringify({ url: authUrl }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (action === 'callback') {
-      // Validate secrets and code
-      if (!code) {
-        return new Response(JSON.stringify({ error: 'No code provided' }), { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
-        return new Response(
-          JSON.stringify({ error: 'Instagram OAuth credentials are not configured. Please set INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET in Supabase Edge Function secrets.' }), 
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-
-      try {
-        console.log("Exchanging code for token with credentials");
-        
-        // Exchange authorization code for access token
-        const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
-          method: 'POST',
-          body: new URLSearchParams({
-            client_id: INSTAGRAM_APP_ID,
-            client_secret: INSTAGRAM_APP_SECRET,
-            grant_type: 'authorization_code',
-            redirect_uri: REDIRECT_URI,
-            code: code,
-          }),
-        });
-
-        const tokenData = await tokenResponse.json();
-        console.log("Token response status:", tokenResponse.status);
-        
-        if (tokenData.error) {
-          console.error("Token error:", tokenData.error_description || tokenData.error);
-          return new Response(JSON.stringify({ error: tokenData.error_description || tokenData.error }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        const { access_token, user_id } = tokenData;
-
-        // Get user info using the Graph API
-        const userInfoResponse = await fetch(
-          `https://graph.instagram.com/me?fields=id,username&access_token=${access_token}`
-        );
-
-        const userData = await userInfoResponse.json();
-        console.log("User data status:", userInfoResponse.status);
-
-        if (userData.error) {
-          console.error("User data error:", userData.error.message);
-          return new Response(JSON.stringify({ error: userData.error.message }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        // Return user data
-        return new Response(
-          JSON.stringify({
-            access_token: access_token,
-            account_name: userData.username || `Instagram User ${user_id.substring(0, 5)}`,
-            account_identifier: user_id,
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      } catch (error) {
-        console.error('Error in Instagram callback:', error);
-        return new Response(JSON.stringify({ error: 'Failed to exchange code', details: error.message }), {
+        return new Response(JSON.stringify({ error: 'Instagram App ID not configured' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      // const { url, state } = generateAuthUrl();
+      const url = `https://www.instagram.com/oauth/authorize?enable_fb_login=0&force_authentication=1&client_id=1029009105506985&redirect_uri=https://efb2-103-72-0-182.ngrok-free.app/instagram-callback&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`
+      // stateStore.set(state, 'active'); // Store state for verification
+      return new Response(JSON.stringify({ url }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (action === 'callback') {
+      if (!code) {
+        return new Response(JSON.stringify({ error: 'No authorization code provided' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // if (!state || !stateStore.has(state)) {
+      //   return new Response(JSON.stringify({ error: 'Invalid or missing state parameter' }), {
+      //     status: 400,
+      //     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      //   });
+      // }
+      // stateStore.delete(state); // Clear state after use
+
+      console.log('Received authorization code:', code);
+      const formData = new FormData();
+      formData.append('client_id', "1029009105506985");
+      formData.append('client_secret', INSTAGRAM_APP_SECRET);
+      formData.append('grant_type', 'authorization_code');
+      formData.append('redirect_uri', REDIRECT_URI);
+      formData.append('code', code);
+      // Step 1: Exchange code for short-lived access token
+      const tokenData = await (
+        await fetch('https://api.instagram.com/oauth/access_token', {
+          method: 'POST',
+          body: formData,
+        })
+      ).json();
+      
+      // const tokenData = await tokenResponse.json();
+      console.log('tokenData',tokenData)
+      if (tokenData.code == 400) {
+        console.error('Token exchange error:', tokenData.error);
+        return new Response(JSON.stringify({ error: tokenData.error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const shortLivedToken = tokenData.access_token;
+      console.log('Short-lived token:', shortLivedToken);
+
+      // Step 2: Exchange short-lived token for long-lived token
+      const longLivedTokenData = await (
+        await fetch(
+          'https://graph.instagram.com/access_token' +
+            '?grant_type=ig_exchange_token' +
+            `&client_id=${INSTAGRAM_APP_ID}` +
+            `&client_secret=${INSTAGRAM_APP_SECRET}` +
+            `&access_token=${tokenData.access_token}`
+        )
+      ).json();
+
+      console.log("longLivedTokenData",longLivedTokenData);
+
+      // const longLivedTokenData = await longLivedTokenResponse.json();
+      if (longLivedTokenData.error) {
+        console.error('Long-lived token error:', longLivedTokenData.error);
+        return new Response(JSON.stringify({ error: longLivedTokenData.error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Step 3: Fetch user info (Instagram Business account)
+      const userInfoResponse = await fetch(
+        `https://graph.instagram.com/v21.0/me?fields=user_id,username,name,profile_picture_url&access_token=${longLivedTokenData?.access_token}`
+      );
+      const userData = await userInfoResponse.json();
+      if (userData.error) {
+        console.error('User info error:', userData.error);
+        return new Response(JSON.stringify({ error: userData.error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      console.log("userData",userData)
+      const instagramAccount = userData;
+      if (!instagramAccount) {
+        return new Response(JSON.stringify({ error: 'No Instagram Business account linked' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({
+          access_token: longLivedTokenData.access_token,
+          account_name: instagramAccount.username,
+          account_identifier: instagramAccount.id,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     return new Response(JSON.stringify({ error: 'Invalid action' }), {

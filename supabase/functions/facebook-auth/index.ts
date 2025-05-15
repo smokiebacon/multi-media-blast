@@ -95,7 +95,7 @@ serve(async (req) => {
         const userInfoResponse = await fetch(
           `https://graph.facebook.com/me?fields=id,name,email&access_token=${access_token}`
         );
-
+       
         const userInfo = await userInfoResponse.json();
         
         if (userInfo.error) {
@@ -111,10 +111,21 @@ serve(async (req) => {
           `https://graph.facebook.com/v17.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${FACEBOOK_APP_ID}&client_secret=${FACEBOOK_APP_SECRET}&fb_exchange_token=${access_token}`
         );
 
+
+       
+
         const longLivedTokenData = await longLivedTokenResponse.json();
         const longLivedToken = longLivedTokenData.access_token || access_token;
         const expiresIn = longLivedTokenData.expires_in;
         const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
+
+
+        const pageList =  await (await fetch(`https://graph.facebook.com/${userInfo?.id}/accounts`, {
+          headers : {
+            "Authorization" : `Bearer ${longLivedToken}`
+          }
+        })).json();
+        console.log('pageList',pageList);
 
         return new Response(
           JSON.stringify({
@@ -125,6 +136,7 @@ serve(async (req) => {
             metadata: {
               email: userInfo.email,
             },
+            pageList : pageList?.data || [],
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );

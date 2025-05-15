@@ -9,7 +9,7 @@ export default function InstagramCallback() {
   const [status, setStatus] = useState('Processing...');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -83,9 +83,10 @@ export default function InstagramCallback() {
         });
       }
     };
-
-    processCallback();
-  }, [navigate, user, toast]);
+    if(!loading) {
+      processCallback();
+    }
+  }, [loading]);
 
   if (error) {
     return (

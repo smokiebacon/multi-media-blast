@@ -77,6 +77,8 @@ export default function FacebookCallback() {
             refresh_token: data?.refresh_token || "",
           });
 
+          // const {} = await supabase?.from("pages").insert({})
+
           if (dbError) {
             console.log('dbError',dbError);
             setDebugInfo({ dbError });
